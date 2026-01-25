@@ -1,0 +1,19 @@
+{
+  "name": "smartcontrol",
+  "version": "1.0.0",
+  "main": "electron/main.cjs",
+  "type": "commonjs",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "frontend": "npm run dev -w frontend",
+    "backend": "npm run dev -w backend",
+    "electron": "electron .",
+    "dev": "concurrently --kill-others \"npm run frontend\" \"npm run backend\" \"npm run electron\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "electron": "^40.0.0"
+  }
+}

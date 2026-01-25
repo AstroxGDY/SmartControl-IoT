@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "NodeNext",          // Permite usar import/export modernos
+    "moduleResolution": "NodeNext", // Ayuda a encontrar las librerías correctamente
+    "verbatimModuleSyntax": true,   // Mantiene los imports tal cual para el compilador
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["../shared/*"] // Para que reconozca tu carpeta shared
+    }
+  }
+}

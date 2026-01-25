@@ -1,0 +1,23 @@
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Compilación
+dist/
+build/
+*.exe
+*.app
+*.dmg
+
+# Variables de entorno (SEGURIDAD)
+.env
+.env.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
