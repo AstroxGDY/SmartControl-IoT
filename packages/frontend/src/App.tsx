@@ -1,19 +1,19 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 // Importamos nuestras nuevas páginas
-import IndexPage from './pages/IndexPage';
-import ApiTestPage from './pages/ApiTestPage';
+import Layout from './components/Layout';
+import Dashboard from './pages/Dashboard';
+import Devices from './pages/Devices';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Ruta principal: Index */}
-        <Route path="/" element={<IndexPage />} />
-        
-        {/* Ruta de prueba: API */}
-        <Route path="/api-test" element={<ApiTestPage />} />
-        
-        {/* Aquí irás añadiendo más rutas como /login, /devices, etc. */}
+        {/* Layout es el padre: define la Sidebar */}
+        <Route path="/" element={<Layout />}>
+          {/* Index es el Dashboard (la página por defecto) */}
+          <Route index element={<Dashboard />} />
+          <Route path="devices" element={<Devices />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
