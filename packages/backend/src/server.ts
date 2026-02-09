@@ -1,35 +1,34 @@
-import Fastify, { fastify } from 'fastify';
+import 'dotenv/config'; // <--- Carga las variables del .env
+import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import mongoose from 'mongoose';
+import indexRoutes from './routes/index.js';
+import { seedDatabase } from './utils/seed.js'; // <--- Importamos el seed
 
 const server = Fastify({ logger: true });
-
-// 1. Configurar CORS para que Electron pueda hablar con el Back
-await server.register(cors, { 
-  origin: "http://localhost:5173"
-});
-
-// 2. Conexión a MongoDB (Asegúrate de tener MongoDB instalado y corriendo)
-mongoose.connect('mongodb://127.0.0.1:27017/smartcontrol')
-  .then(() => console.log('🍃 Conectado a MongoDB'))
-  .catch(err => console.error('❌ Error en Mongo:', err));
-
-// 3. Tu primera ruta real
-server.get('/hola', async () => {
-  return { msg: "¡Conexión establecida y Base de Datos lista! ✅" };
-});
-
-// Rutas
-import indexRoutes from './routes/index.js';
-
-server.register(indexRoutes, {prefix:'/'});
+const PORT = process.env.PORT || 3000;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/test';
 
 const start = async () => {
   try {
-    await server.listen({ port: 3000 });
+    // 1. Conectar a BDD
+    await mongoose.connect(MONGO_URI);
+    console.log('🍃 Conectado a MongoDB');
+
+    // 2. Ejecutar Seed Automático (Solo si está vacía)
+    await seedDatabase();
+
+    // 3. Configuración del Server
+    await server.register(cors, { origin: true });
+    await server.register(indexRoutes, { prefix: '/' });
+
+    await server.listen({ port: Number(PORT) });
+    console.log(`🚀 Server corriendo en puerto ${PORT}`);
+
   } catch (err) {
     server.log.error(err);
     process.exit(1);
   }
 };
+
 start();
