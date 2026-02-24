@@ -2,6 +2,7 @@
 import type { FastifyInstance } from 'fastify';
 import { Device } from '../models/Device.js'; 
 import { type IDeviceInfo, type IDeviceState } from '../../../shared/types.js';
+import {type TuyaStatus, mapSmartBulb} from '../utils/deviceMappers.js';
 
 // UNA ÚNICA EXPORTACIÓN PARA TODAS LAS RUTAS DE DEVICES
 export default async function deviceRoutes(fastify: FastifyInstance) {
@@ -93,7 +94,7 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
   }
 
   // ==========================================================
-  // 4. GET: Obtener información concreta/dinámica (Para el Modal)
+  // 4. GET: Obtener información concreta/dinámica (Mapeada)
   // GET /devices/:id/state
   // ==========================================================
   fastify.get<{ Params: GetDeviceParams; Reply: IDeviceState | { error: string } }>(
@@ -101,24 +102,52 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params;
 
-      console.log(`Petición recibida para el estado del dispositivo ID: ${id}`);
+      // 1. Buscamos el dispositivo en Mongo para saber de qué TIPO es
+      const device = await Device.findById(id).lean();
+      
+      if (!device) {
+        return reply.status(404).send({ error: 'Dispositivo no encontrado en la base de datos' });
+      }
 
-      const mockState: IDeviceState = {
-        status: 'online',
-        isOn: true,
-        attributes: {
-          bateria: "82%",
-          temperatura_interna: "35°C",
-          calidad_red: "Excelente",
-          firmware: "v1.2.4",
-          ultima_sincronizacion: new Date().toLocaleTimeString()
-        }
-      };
+      console.log(`[IoT] Procesando telemetría para [${device.name}] (Tipo: ${device.type})`);
+
+      // 2. OBTENER DATOS CRUDOS (Simulamos la llamada a la API de Tuya o MQTT)
+      // En el futuro, aquí harás: const rawTuyaData = await tuyaApi.getDeviceStatus(device.tuyaId);
+      let rawTuyaData: Record<string, any> = {};
+
+      if (device.type === 'smart-bulb') {
+        // Datos crudos simulados sacados de tus DPs
+        rawTuyaData = {
+          "20": true,
+          "21": "colour",
+          "22": 1000,
+          "23": 500,
+          "24": "{\"h\":275,\"s\":800,\"v\":1000}",
+          "26": 0
+        };
+      }
+
+      // 3. MAPEAR LOS DATOS SEGÚN EL TIPO
+      let cleanState: IDeviceState;
+
+      switch (device.type) {
+        case 'smart-bulb':
+          cleanState = mapSmartBulb(rawTuyaData);
+          break;
+        default:
+          // Mapper por defecto si no tenemos uno específico
+          cleanState = {
+            status: 'online',
+            isOn: false,
+            attributes: { info: "Dispositivo no soportado o mapeado aún" }
+          };
+      }
 
       // Simular latencia de red
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      return mockState;
+      // 4. Devolvemos el JSON precioso y tipado a React
+      return cleanState;
     }
   );
 }
