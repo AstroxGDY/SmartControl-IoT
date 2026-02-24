@@ -83,42 +83,7 @@ return (
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <DeviceCard name="Luz Salón" status="Encendido" isOn={true} icon={Lightbulb} variant="purple">
-                <div className="flex justify-between text-[10px] text-gray-400 mb-1 font-bold">
-                    <span>Brillante</span><span>100%</span></div>
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="w-full h-full bg-purple-500"></div>
-                </div>
-            </DeviceCard>
 
-            <DeviceCard name="Termostato" status="Calefacción Activa" isOn={true} icon={Thermometer} variant="blue">
-                <div className="text-center py-2">
-                    <span className="text-3xl font-black text-slate-800">21 °C</span>
-                </div>
-            </DeviceCard>
-
-            <DeviceCard name="Cámara Entrada" status="Online" isOn={true} icon={Camera} variant="blue">
-                <div
-                    className="h-20 bg-slate-200 rounded-xl overflow-hidden grayscale hover:grayscale-0 transition-all">
-                    <img src="https://images.unsplash.com/photo-1558036117-15d82a90b9b1?q=80&w=300"
-                        className="w-full h-full object-cover" alt="cam" />
-                </div>
-            </DeviceCard>
-
-            <DeviceCard name="Ventilador" status="Encendido" isOn={true} icon={Wind} variant="purple">
-                <div className="flex justify-end mt-4">
-                    <div className="w-10 h-5 bg-purple-500 rounded-full relative p-1">
-                        <div className="absolute right-1 w-3 h-3 bg-white rounded-full"></div>
-                    </div>
-                </div>
-            </DeviceCard>
-
-            <DeviceCard name="Enchufe TV" status="Apagado" isOn={false} icon={Plug} variant="blue">
-                <div className="text-[9px] text-gray-400 font-medium leading-tight mt-2">
-                    <p>Consumo: 25.5 kWh</p>
-                    <p>Actual: 0.00 kWh</p>
-                </div>
-            </DeviceCard>
         </div>
     </section>
 

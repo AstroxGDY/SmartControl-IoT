@@ -2,7 +2,7 @@ import 'dotenv/config'; // <--- Carga las variables del .env
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import mongoose from 'mongoose';
-import indexRoutes from './routes/index.js';
+import devicesRoutes from './routes/deviceRoutes.js';
 import { seedDatabase } from './utils/seed.js'; // <--- Importamos el seed
 
 const server = Fastify({ logger: true });
@@ -20,7 +20,7 @@ const start = async () => {
 
     // 3. Configuración del Server
     await server.register(cors, { origin: true });
-    await server.register(indexRoutes, { prefix: '/' });
+    await server.register(devicesRoutes, {prefix: '/devices'});
 
     await server.listen({ port: Number(PORT) });
     console.log(`🚀 Server corriendo en puerto ${PORT}`);
