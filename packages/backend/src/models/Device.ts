@@ -18,7 +18,6 @@ const DeviceSchema: Schema = new Schema<IDeviceDocument>({
   type: { type: String, required: true },
   connectionType: { 
     type: String, 
-    enum: ['WiFi', 'Zigbee', 'Bluetooth', 'LoRa'], 
     required: true 
   },
   image: { type: String, default: "https://www.svgrepo.com/show/508699/landscape-placeholder.svg" },
@@ -30,8 +29,7 @@ const DeviceSchema: Schema = new Schema<IDeviceDocument>({
     enum: ['online', 'offline', 'error'], 
     default: 'offline' 
   },
-  isOn: { type: Boolean, default: false },
-  // 'Mixed' permite guardar objetos JSON flexibles (temperatura, color, batería, etc.)
+  // 'Mixed' permite guardar objetos JSON flexibles (temperatura, color, batería, dps enteros)
   attributes: { type: Schema.Types.Mixed, default: {} },
 
 }, { 

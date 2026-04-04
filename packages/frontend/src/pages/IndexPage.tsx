@@ -1,20 +1,37 @@
-import { 
-  LayoutDashboard, 
-  Home, 
-  PlusCircle, 
-  BarChart2, 
-  Settings, 
-  Lightbulb, 
-  Thermometer, 
-  Camera, 
-  Wind, 
-  Plug, 
-  AlertTriangle
+import { useState, useEffect } from 'react';
+import {
+  LayoutDashboard,
+  Home,
+  PlusCircle,
+  BarChart2,
+  Settings,
+  AlertTriangle,
+  Cpu,
+  Thermometer
 } from 'lucide-react';
+import { DeviceDetailsModal } from '../components/DeviceDetailsModal';
 
 export default function IndexPage() {
+  const [devices, setDevices] = useState<any[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<any | null>(null);
+
+  useEffect(() => {
+    fetch('http://localhost:3000/devices')
+      .then(res => res.json())
+      .then(data => setDevices(data || []))
+      .catch(e => console.error("Error cargando dispositivos", e));
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-[#F8F9FD] font-sans text-slate-800">
+      {/* SidePanel de Detalles Dinámico */}
+      {selectedDevice && (
+        <DeviceDetailsModal
+          device={selectedDevice}
+          onClose={() => setSelectedDevice(null)}
+        />
+      )}
+
       {/* --- SIDEBAR --- */}
       <aside className="w-16 md:w-20 bg-[#A855F7] flex flex-col items-center py-8 gap-8 text-white">
         <div className="p-2"><LayoutDashboard size={28} /></div>
@@ -39,17 +56,17 @@ export default function IndexPage() {
         <section className="mb-10">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">Resumen del Sistema</h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
+
             {/* Estado de Dispositivos */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
               <h3 className="text-lg font-bold mb-4 self-start">Estado de Dispositivos</h3>
               <div className="relative w-40 h-20 overflow-hidden">
-                 <div className="w-40 h-40 border-[16px] border-gray-100 rounded-full"></div>
-                 <div className="absolute top-0 left-0 w-40 h-40 border-[16px] border-green-500 rounded-full border-t-transparent border-r-transparent -rotate-45"></div>
-                 <div className="absolute inset-0 flex flex-col items-center justify-end pb-2">
-                    <span className="text-2xl font-bold text-green-600">15<span className="text-gray-400 text-lg">/20</span></span>
-                    <span className="text-[10px] uppercase font-bold text-gray-400">Online</span>
-                 </div>
+                <div className="w-40 h-40 border-[16px] border-gray-100 rounded-full"></div>
+                <div className="absolute top-0 left-0 w-40 h-40 border-[16px] border-green-500 rounded-full border-t-transparent border-r-transparent -rotate-45"></div>
+                <div className="absolute inset-0 flex flex-col items-center justify-end pb-2">
+                  <span className="text-2xl font-bold text-green-600">15<span className="text-gray-400 text-lg">/20</span></span>
+                  <span className="text-[10px] uppercase font-bold text-gray-400">Online</span>
+                </div>
               </div>
               <p className="mt-4 text-sm text-gray-500">Todo funcionando correctamente</p>
             </div>
@@ -93,89 +110,52 @@ export default function IndexPage() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-700">Mis Favoritos</h2>
-              <p className="text-sm text-gray-400 font-medium">Vista Detallada de Dispositivos</p>
+              <p className="text-sm text-gray-400 font-medium">Vista Dinámica de Metadatos Tuya</p>
             </div>
-            <button className="bg-purple-500 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-purple-600 transition-colors">
-              Ver Todos
-            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {/* Luz Salón */}
-            <div className="bg-gradient-to-br from-purple-50 to-white p-4 rounded-2xl border border-purple-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-purple-100 text-purple-500 rounded-lg"><Lightbulb size={20} /></div>
-                <div>
-                  <h4 className="font-bold text-sm">Luz Salón</h4>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                    <span className="text-[10px] text-gray-400">Encendido</span>
+            {devices.length === 0 ? (
+              <div className="col-span-full bg-white p-8 rounded-2xl shadow border border-gray-100 flex flex-col items-center text-gray-500">
+                <Cpu size={40} className="mb-4 text-purple-200" />
+                <p>Aún no has emparejado dispositivos Tuya en la nueva BBDD genérica.</p>
+              </div>
+            ) : (
+              devices.map((bicho) => {
+                // Lógica ultra-genérica para sacar si está "ON" y su status
+                const is_on = bicho.attributes?.is_on_guess || (bicho.attributes?.dps ? Object.values(bicho.attributes.dps).includes(true) : false);
+
+                return (
+                  <div key={bicho._id} className="bg-gradient-to-br from-purple-50 to-white p-5 rounded-2xl border border-purple-100 shadow-sm flex flex-col justify-between group">
+                    <div>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 bg-white rounded-lg p-1 border border-purple-100 shadow-sm shrink-0">
+                          {bicho.image && bicho.image.startsWith('http') ? (
+                            <img src={bicho.image} alt={bicho.name} className="w-full h-full object-contain" />
+                          ) : <Cpu size={24} className="text-purple-400 mx-auto mt-2" />}
+                        </div>
+                        <div className="overflow-hidden">
+                          <h4 className="font-bold text-sm text-gray-800 truncate">{bicho.name}</h4>
+                          <div className="flex items-center gap-1">
+                            <div className={`w-2 h-2 rounded-full ${is_on ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-gray-300'}`}></div>
+                            <span className="text-[10px] text-gray-400 uppercase font-black tracking-wider">
+                              {bicho.type.substring(0, 10)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedDevice(bicho)}
+                      className="mt-4 w-full bg-white border border-purple-200 text-purple-600 hover:bg-purple-600 hover:text-white font-bold text-xs py-2 rounded-xl transition-colors"
+                    >
+                      Ver detalles
+                    </button>
                   </div>
-                </div>
-              </div>
-              <div className="mt-8">
-                <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                  <span>Brillante</span>
-                  <span>100%</span>
-                </div>
-                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="w-full h-full bg-purple-500"></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Termostato */}
-            <div className="bg-gradient-to-br from-blue-50 to-white p-4 rounded-2xl border border-blue-100 shadow-sm flex flex-col items-center justify-between text-center">
-              <div className="flex items-center gap-3 self-start">
-                <div className="p-2 bg-blue-100 text-blue-500 rounded-lg"><Thermometer size={20} /></div>
-                <h4 className="font-bold text-sm">Termostato</h4>
-              </div>
-              <div className="py-4">
-                <span className="text-3xl font-bold">21 °C</span>
-                <p className="text-[10px] text-gray-400 font-bold uppercase">Calefacción Activa</p>
-              </div>
-            </div>
-
-            {/* Cámara Entrada */}
-            <div className="bg-gradient-to-br from-blue-50 to-white p-4 rounded-2xl border border-blue-100 shadow-sm overflow-hidden">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-blue-100 text-blue-500 rounded-lg"><Camera size={20} /></div>
-                <h4 className="font-bold text-sm text-gray-800">Cámara Entrada</h4>
-              </div>
-              <div className="h-24 bg-gray-200 rounded-lg overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1558036117-15d82a90b9b1?auto=format&fit=crop&q=80&w=200" alt="entrada" className="w-full h-full object-cover" />
-              </div>
-            </div>
-
-            {/* Ventilador */}
-            <div className="bg-gradient-to-br from-purple-50 to-white p-4 rounded-2xl border border-purple-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="p-2 bg-purple-100 text-purple-500 rounded-lg"><Wind size={20} /></div>
-                <h4 className="font-bold text-sm">Ventilador</h4>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-400 font-bold">Encendido</span>
-                <div className="w-12 h-6 bg-purple-500 rounded-full relative p-1 cursor-pointer">
-                  <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Enchufe TV */}
-            <div className="bg-gradient-to-br from-blue-50 to-white p-4 rounded-2xl border border-blue-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-100 text-blue-500 rounded-lg"><Plug size={20} /></div>
-                <h4 className="font-bold text-xs">Enchufe Inteligente TV</h4>
-              </div>
-              <div className="flex items-center gap-1 mb-2">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <span className="text-[10px] text-gray-400 uppercase font-bold">Apagado</span>
-              </div>
-              <div className="text-[9px] text-gray-400 leading-tight">
-                <p>Consumo energía: 25.500 kWh</p>
-                <p>Consumo actual: 0.0000 kWh</p>
-              </div>
-            </div>
+                );
+              })
+            )}
           </div>
         </section>
 

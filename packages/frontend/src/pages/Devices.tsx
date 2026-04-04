@@ -24,12 +24,7 @@ export default function Devices() {
         {devices.map((device) => (
           <DeviceCard 
             key={device._id}
-            id={device._id ?? ''} // Manejo de undefined para TS
-            name={device.name}
-            type={device.type}
-            status={device.status}
-            isOn={device.isOn}
-            variant={device.isOn ? 'purple' : 'blue'}
+            device={device}
           />
         ))}
       </div>

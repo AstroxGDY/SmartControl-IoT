@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Devices from './pages/Devices';
+import ScanDevices from './pages/ScanDevices';
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
           {/* Index es el Dashboard (la página por defecto) */}
           <Route index element={<Dashboard />} />
           <Route path="devices" element={<Devices />} />
+          <Route path="scan" element={<ScanDevices />} />
         </Route>
       </Routes>
     </BrowserRouter>

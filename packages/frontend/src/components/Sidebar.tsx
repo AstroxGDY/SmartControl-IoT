@@ -9,7 +9,7 @@ export const Sidebar = () => {
         <Link to="/" title="Dashboard" className="hover:scale-110 transition-transform">
           <Home size={24} />
         </Link>
-        <Link to="/api-test" title="Test" className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
+        <Link to="/scan" title="Añadir dispositivo" className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
           <PlusCircle size={24} />
         </Link>
       </nav>
