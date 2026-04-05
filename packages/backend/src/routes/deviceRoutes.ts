@@ -56,7 +56,7 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
   // ==========================================================
   fastify.get<{ Reply: IDeviceInfo[] }>('/', async (request, reply) => {
     const devices = await Device.find()
-      .select('name type connectionType image owner attributes createdAt updatedAt')
+      .select('name type connectionType status image owner attributes createdAt updatedAt')
       .lean();
 
     const formattedDevices: IDeviceInfo[] = devices.map(device => ({
@@ -130,10 +130,10 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
         const { stdout: cloudOut } = await execAsync(`python "${cloudScript}"`, { env: process.env });
         const cJsonMatch = cloudOut.match(/\[[\s\S]*\]/);
         if (cJsonMatch) {
-            cloudDevices = JSON.parse(cJsonMatch[0]);
+          cloudDevices = JSON.parse(cJsonMatch[0]);
         }
       } catch (e) {
-          console.warn('[IoT DEBUG] No se pudo obtener la nube para hacer cross-match', e);
+        console.warn('[IoT DEBUG] No se pudo obtener la nube para hacer cross-match', e);
       }
 
       // ===================================
@@ -252,44 +252,105 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
   // 4. GET: Obtener información concreta/dinámica (Mapeada)
   // GET /devices/:id/state
   // ==========================================================
-  fastify.get<{ Params: GetDeviceParams; Reply: IDeviceState | { error: string } }>(
+  fastify.get<{ Params: GetDeviceParams; Reply: any }>(
     '/:id/state',
     async (request, reply) => {
       const { id } = request.params;
 
-      // 1. Buscamos el dispositivo en Mongo para saber de qué TIPO es
       const device = await Device.findById(id).lean();
 
       if (!device) {
         return reply.status(404).send({ error: 'Dispositivo no encontrado en la base de datos' });
       }
 
-      console.log(`[IoT] Procesando telemetría para [${device.name}] (Tipo: ${device.type})`);
-
-      // 2. OBTENER DATOS CRUDOS (Simulamos la llamada a la API de Tuya o MQTT)
-      // En el futuro, aquí harás: const rawTuyaData = await tuyaApi.getDeviceStatus(device.tuyaId);
-      let rawTuyaData: Record<string, any> = {};
-
-      if (device.type === 'smart-bulb') {
-        // Datos crudos simulados sacados de tus DPs
-        rawTuyaData = {
-          "20": true,
-          "21": "colour",
-          "22": 1000,
-          "23": 500,
-          "24": "{\"h\":275,\"s\":800,\"v\":1000}",
-          "26": 0
-        };
+      if (!device.attributes || !device.attributes.ip || !device.attributes.localKey || !device.attributes.tuyaId) {
+        return reply.status(400).send({ error: 'Faltan credenciales locales para consultar estado' });
       }
 
-      // 3. MAPEAR LOS DATOS DE FORMA GENÉRICA
-      const cleanState: IDeviceState = mapGenericTuya(rawTuyaData);
+      console.log(`[IoT] Solicitando STATUS real para [${device.name}] (Tipo: ${device.type})`);
 
-      // Simular latencia de red
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'get_status.py');
+      const envObj = {
+        ...process.env,
+        TUYA_DEVICE_ID: device.attributes.tuyaId,
+        TUYA_IP: device.attributes.ip,
+        TUYA_LOCAL_KEY: device.attributes.localKey,
+        TUYA_VERSION: device.attributes.version || '3.3'
+      };
 
-      // 4. Devolvemos el JSON precioso y tipado a React
-      return cleanState;
+      try {
+        const { stdout, stderr } = await execAsync(`python "${scriptPath}"`, { env: envObj });
+        
+        const firstBrace = stdout.indexOf('{');
+        const lastBrace = stdout.lastIndexOf('}');
+        if (firstBrace === -1 || lastBrace === -1) {
+          throw new Error('Sin salida JSON de Python');
+        }
+
+        const result = JSON.parse(stdout.substring(firstBrace, lastBrace + 1));
+        
+        if (result.error) {
+          // Si el dispositivo está apagado físicamente, Tuya da "Network Error" usualmente u otro error.
+          return reply.status(503).send({ error: result.error, offline: true });
+        }
+        
+        // Devolvemos exitosamente los DPS reales
+        return { success: true, dps: result.data.dps || {} };
+
+      } catch (error: any) {
+        console.error('[IoT ERROR] Error consultando status:', error.message);
+        return reply.status(503).send({ error: 'Error de red con el dispositivo', offline: true });
+      }
+    }
+  );
+
+  // ==========================================================
+  // 5. POST: Enviar Comando (Encender/Apagar)
+  // POST /devices/:id/command
+  // ==========================================================
+  fastify.post<{ Params: GetDeviceParams; Body: { dp: string; value: any }; Reply: any }>(
+    '/:id/command',
+    async (request, reply) => {
+      const { id } = request.params;
+      const { dp, value } = request.body;
+
+      const device = await Device.findById(id).lean();
+      if (!device) {
+        return reply.status(404).send({ error: 'Dispositivo no encontrado' });
+      }
+
+      if (!device.attributes || !device.attributes.ip || !device.attributes.localKey || !device.attributes.tuyaId) {
+        return reply.status(400).send({ error: 'Faltan credenciales locales para enviar comando' });
+      }
+
+      const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'send_command.py');
+      const envObj = {
+        ...process.env,
+        TUYA_DEVICE_ID: device.attributes.tuyaId,
+        TUYA_IP: device.attributes.ip,
+        TUYA_LOCAL_KEY: device.attributes.localKey,
+        TUYA_VERSION: device.attributes.version || '3.3',
+        TUYA_DP: dp,
+        TUYA_VALUE: String(value)
+      };
+
+      try {
+        const { stdout, stderr } = await execAsync(`python "${scriptPath}"`, { env: envObj });
+
+        const firstBrace = stdout.indexOf('{');
+        const lastBrace = stdout.lastIndexOf('}');
+        if (firstBrace === -1 || lastBrace === -1) {
+          throw new Error('Sin salida JSON de Python');
+        }
+
+        const result = JSON.parse(stdout.substring(firstBrace, lastBrace + 1));
+        if (result.error) return reply.status(500).send(result);
+
+        return { success: true, ...result };
+      } catch (error: any) {
+        console.error('[IoT ERROR] Error enviando comando:', error.message);
+        return reply.status(500).send({ error: 'Error enviando comando a dispositivo' });
+      }
     }
   );
 }
