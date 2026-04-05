@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Cpu, Server, Hash, Power, PowerOff, Loader2 } from 'lucide-react';
+import { X, Cpu, Server, Hash, Power, PowerOff, Loader2, Wifi } from 'lucide-react';
 
 interface DeviceDetailsModalProps {
     device: any;
@@ -13,6 +13,7 @@ export const DeviceDetailsModal = ({ device, onClose }: DeviceDetailsModalProps)
 
     // Estados principales
     const [liveDps, setLiveDps] = useState<Record<string, any>>(metadata.dps || {});
+    const [schema, setSchema] = useState<any[]>(metadata.schema || []);
     const [isLoading, setIsLoading] = useState(true);
     const [isOffline, setIsOffline] = useState(device.status !== 'online');
 
@@ -29,6 +30,9 @@ export const DeviceDetailsModal = ({ device, onClose }: DeviceDetailsModalProps)
                 } else if (data.success && data.dps) {
                     setIsOffline(false);
                     setLiveDps(data.dps);
+                    if (data.schema && Array.isArray(data.schema)) {
+                        setSchema(data.schema);
+                    }
                 }
             } catch (e) {
                 setIsOffline(true);
@@ -42,12 +46,22 @@ export const DeviceDetailsModal = ({ device, onClose }: DeviceDetailsModalProps)
     const [isToggling, setIsToggling] = useState(false);
 
     let togglePowerDP: string | undefined;
-    if ('20' in liveDps && typeof liveDps['20'] === 'boolean') {
-        togglePowerDP = '20';
-    } else if ('1' in liveDps && typeof liveDps['1'] === 'boolean') {
-        togglePowerDP = '1';
-    } else {
-        togglePowerDP = Object.keys(liveDps).find(k => typeof liveDps[k] === 'boolean');
+
+    // Detección 100% fiable mediante el esquema de Tuya Cloud
+    if (schema.length > 0) {
+        const primarySwitch = schema.find(s => s.code && s.code.startsWith('switch') && s.type === 'Boolean');
+        if (primarySwitch) togglePowerDP = String(primarySwitch.dp_id);
+    }
+
+    // Fallback: modo heurístico
+    if (!togglePowerDP) {
+        if ('20' in liveDps && typeof liveDps['20'] === 'boolean') {
+            togglePowerDP = '20';
+        } else if ('1' in liveDps && typeof liveDps['1'] === 'boolean') {
+            togglePowerDP = '1';
+        } else {
+            togglePowerDP = Object.keys(liveDps).find(k => typeof liveDps[k] === 'boolean');
+        }
     }
 
     const handleToggle = async () => {
@@ -102,8 +116,8 @@ export const DeviceDetailsModal = ({ device, onClose }: DeviceDetailsModalProps)
                                     </span>
                                 ) : (
                                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 font-bold text-xs rounded-full uppercase tracking-wider ${isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                        {isOnline ? <Power size={12} className="mr-0.5" /> : <PowerOff size={12} className="mr-0.5" />}
-                                        {isOnline ? 'Encendido' : 'Apagado'}
+                                        {isOnline ? <Wifi size={12} className="mr-0.5" /> : <PowerOff size={12} className="mr-0.5" />}
+                                        {isOnline ? 'Conectado' : 'Desconectado'}
                                     </span>
                                 )}
                             </div>
@@ -159,7 +173,7 @@ export const DeviceDetailsModal = ({ device, onClose }: DeviceDetailsModalProps)
 
                             {/* Sección 2: Matriz Genérica Data Points */}
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                                <Hash size={16} /> Data Points (Telemetría Tuya)
+                                <Hash size={16} /> Data Points {schema.length > 0 ? '(Mapeo Cloud)' : '(Crudos)'}
                             </h3>
 
                             {Object.keys(liveDps).length === 0 ? (
@@ -168,33 +182,65 @@ export const DeviceDetailsModal = ({ device, onClose }: DeviceDetailsModalProps)
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {Object.entries(liveDps).map(([key, value]) => {
-                                        const isBoolean = typeof value === 'boolean';
-                                        const isNumber = typeof value === 'number';
+                                    {(() => {
+                                        const items = schema.length > 0
+                                            ? schema.filter((s: any) => liveDps[String(s.dp_id)] !== undefined).map((s: any) => ({
+                                                id: String(s.dp_id), code: s.code, type: s.type, value: liveDps[String(s.dp_id)], raw: s
+                                            }))
+                                            : Object.entries(liveDps).map(([k, v]) => ({
+                                                id: k, code: `DP ${k}`, type: typeof v === 'boolean' ? 'Boolean' : typeof v === 'number' ? 'Integer' : 'String', value: v, raw: null as any
+                                            }));
 
-                                        return (
-                                            <div key={key} className="bg-white border shadow-sm border-gray-100 p-3 rounded-xl hover:border-purple-300 transition-colors flex flex-col justify-between group">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <span className="text-[10px] bg-gray-100 text-gray-500 font-black px-1.5 py-0.5 rounded">DP {key}</span>
-                                                </div>
+                                        return items.map(({ id, code, type, value, raw }: { id: string, code: string, type: string, value: any, raw: any }) => {
+                                            const isBoolean = type === 'Boolean';
+                                            const isNumber = type === 'Integer';
 
-                                                <div className="mt-1">
-                                                    {isBoolean ? (
-                                                        <div className="flex items-center justify-between mt-1">
-                                                            <span className="text-sm font-bold text-gray-700">{value ? 'Encendido / True' : 'Apagado / False'}</span>
-                                                            <div className={`w-8 h-4 rounded-full relative transition-colors ${value ? 'bg-green-500' : 'bg-gray-300'}`}>
-                                                                <div className={`absolute w-3 h-3 bg-white rounded-full top-0.5 transition-all ${value ? 'right-0.5' : 'left-0.5'}`}></div>
+                                            // Aplicar formato de Tuya
+                                            let displayVal: any = value;
+                                            let suffix = '';
+                                            if (raw && raw.values) {
+                                                try {
+                                                    const sParams = JSON.parse(raw.values);
+                                                    if (isNumber) {
+                                                        if (sParams.scale > 0) {
+                                                            displayVal = (value / Math.pow(10, sParams.scale)).toFixed(sParams.scale);
+                                                        }
+                                                        if (sParams.unit) suffix = ` ${sParams.unit}`;
+                                                    }
+                                                } catch (e) { }
+                                            }
+
+                                            return (
+                                                <div key={id} className={`bg-white border shadow-sm p-3 rounded-xl transition-colors flex flex-col justify-between group ${String(id) === togglePowerDP && isBoolean ? 'border-purple-200 bg-purple-50/30' : 'border-gray-100'}`}>
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase ${String(id) === togglePowerDP && isBoolean ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                            {code.replace(/_/g, ' ')}
+                                                        </span>
+                                                        <span className="text-[9px] text-gray-400 font-bold px-1 uppercase scale-90 opacity-70">
+                                                            ID {id}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="mt-1">
+                                                        {isBoolean ? (
+                                                            <div className="flex items-center justify-between mt-1">
+                                                                <span className={`text-sm font-bold ${displayVal ? 'text-green-600' : 'text-gray-400'}`}>{displayVal ? 'Encendido / True' : 'Apagado / False'}</span>
+                                                                <div className={`w-8 h-4 rounded-full relative transition-colors ${displayVal ? 'bg-green-500' : 'bg-gray-300'}`}>
+                                                                    <div className={`absolute w-3 h-3 bg-white rounded-full top-0.5 transition-all ${displayVal ? 'right-0.5' : 'left-0.5'}`}></div>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    ) : isNumber ? (
-                                                        <span className="text-lg font-black text-purple-600">{value}</span>
-                                                    ) : (
-                                                        <span className="text-sm font-semibold text-gray-700 break-words">{String(value)}</span>
-                                                    )}
+                                                        ) : isNumber ? (
+                                                            <span className="text-lg font-black text-purple-600">
+                                                                {displayVal}<span className="text-sm font-semibold text-gray-400 ml-1">{suffix}</span>
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-sm font-semibold text-gray-700 break-words">{String(displayVal)}</span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        });
+                                    })()}
                                 </div>
                             )}
                         </>
@@ -210,7 +256,7 @@ export const DeviceDetailsModal = ({ device, onClose }: DeviceDetailsModalProps)
                         </div>
                     )}
 
-                    {/* Debug data as requested */}
+                    {/* Debug data visible solo para desarrollo */}
                     <div className="w-full text-left mt-6 bg-gray-100 p-4 rounded-xl overflow-x-auto border border-gray-200">
                         <p className="text-xs font-bold text-gray-500 mb-2">DEBUG: Telemetría viva y Datos crudos</p>
                         <pre className="text-[10px] text-gray-700 font-mono whitespace-pre-wrap">

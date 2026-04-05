@@ -55,9 +55,62 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
   // GET /devices/
   // ==========================================================
   fastify.get<{ Reply: IDeviceInfo[] }>('/', async (request, reply) => {
-    const devices = await Device.find()
+    let devices = (await Device.find()
       .select('name type connectionType status image owner attributes createdAt updatedAt')
-      .lean();
+      .lean()) as any[];
+
+    // =============== LIVE LOCAL POLLING =================
+    const queryData = devices.map(d => ({
+        _id: d._id.toString(),
+        tuyaId: d.attributes?.tuyaId,
+        ip: d.attributes?.ip,
+        localKey: d.attributes?.localKey,
+        version: d.attributes?.version || '3.3'
+    })).filter(d => d.tuyaId && d.ip && d.localKey);
+
+    if (queryData.length > 0) {
+        try {
+            console.log(`[IoT] Consultando estado en vivo de ${queryData.length} dispositivos para la vista principal...`);
+            const tempFile = path.resolve(process.cwd(), `temp_query_${Date.now()}.json`);
+            await fs.writeFile(tempFile, JSON.stringify(queryData), 'utf-8');
+            
+            const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'get_statuses.py');
+            const { stdout } = await execAsync(`python "${scriptPath}" "${tempFile}"`, { env: process.env });
+            
+            await fs.unlink(tempFile).catch(() => {}); // Limpiar
+            
+            const firstBrace = stdout.indexOf('{');
+            const lastBrace = stdout.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1) {
+                const result = JSON.parse(stdout.substring(firstBrace, lastBrace + 1));
+                if (result.success && result.results) {
+                    // Actualizar en memoria y persistir en la DB en background
+                    for (const live of result.results) {
+                        const idx = devices.findIndex(d => d._id.toString() === live._id);
+                        if (idx !== -1) {
+                            if (live.success && live.dps) {
+                                devices[idx].status = 'online';
+                                devices[idx].attributes = { ...devices[idx].attributes, dps: live.dps };
+                                Device.updateOne(
+                                    { _id: devices[idx]._id },
+                                    { $set: { status: 'online', 'attributes.dps': live.dps } }
+                                ).exec().catch(() => {});
+                            } else {
+                                devices[idx].status = 'offline';
+                                Device.updateOne({ _id: devices[idx]._id }, { $set: { status: 'offline' } }).exec().catch(() => {});
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[IoT] Fallo al consultar múltiples estados en paralelo:', e);
+            // Ignoramos y borramos archivo si quedó tirado
+            const tempMatches = await fs.readdir(process.cwd());
+            tempMatches.filter(f => f.startsWith('temp_query_')).forEach(f => fs.unlink(path.resolve(process.cwd(), f)).catch(()=>{}));
+        }
+    }
+    // ====================================================
 
     const formattedDevices: IDeviceInfo[] = devices.map(device => ({
       ...device,
@@ -219,6 +272,7 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
         type: deviceData.type,
         connectionType: deviceData.connectionType,
         image: deviceData.image,
+        status: 'online',
         attributes: {
           tuyaId,
           ip,
@@ -269,6 +323,33 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
 
       console.log(`[IoT] Solicitando STATUS real para [${device.name}] (Tipo: ${device.type})`);
 
+      // 1. GESTIÓN DEL DICCIONARIO (SCHEMA)
+      let schema = device.attributes.schema;
+      if (!schema && process.env.TUYA_API_REGION) {
+        console.log(`[IoT] Descargando DB de Diccionario (Schema) faltante de [${device.name}]...`);
+        const schemaPath = path.resolve(process.cwd(), 'src', 'scripts', 'get_schema.py');
+        const schemaEnv = {
+          ...process.env,
+          TUYA_DEVICE_ID: device.attributes.tuyaId
+        };
+        try {
+          const { stdout } = await execAsync(`python "${schemaPath}"`, { env: schemaEnv });
+          const fb = stdout.indexOf('{');
+          const lb = stdout.lastIndexOf('}');
+          if (fb !== -1 && lb !== -1) {
+            const schRes = JSON.parse(stdout.substring(fb, lb + 1));
+            if (schRes.success && schRes.schema) {
+              schema = schRes.schema;
+              // Guardar en la bbdd permanentemente en background
+              await Device.updateOne({ _id: id }, { $set: { 'attributes.schema': schema } });
+            }
+          }
+        } catch(e) {
+          console.warn('[IoT] No se pudo obtener el schema dinámico', e);
+        }
+      }
+
+      // 2. GESTIÓN DE DPS
       const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'get_status.py');
       const envObj = {
         ...process.env,
@@ -294,8 +375,8 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
           return reply.status(503).send({ error: result.error, offline: true });
         }
         
-        // Devolvemos exitosamente los DPS reales
-        return { success: true, dps: result.data.dps || {} };
+        // Devolvemos exitosamente los DPS reales junto al diccionario semántico
+        return { success: true, dps: result.data.dps || {}, schema: schema || [] };
 
       } catch (error: any) {
         console.error('[IoT ERROR] Error consultando status:', error.message);

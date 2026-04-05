@@ -3,7 +3,6 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import mongoose from 'mongoose';
 import devicesRoutes from './routes/deviceRoutes.js';
-import { seedDatabase } from './utils/seed.js'; // <--- Importamos el seed
 
 const server = Fastify({ logger: true });
 const PORT = process.env.PORT || 3000;
@@ -16,7 +15,6 @@ const start = async () => {
     mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 2000 })
       .then(async () => {
         console.log('🍃 Conectado a MongoDB');
-        await seedDatabase();
       })
       .catch((err) => {
         console.warn('⚠️ No se ha podido conectar a MongoDB. La API arrancará igual, pero sin DB.');

@@ -1,126 +1,169 @@
-import { Lightbulb, Thermometer, Camera, Wind, Plug, AlertTriangle, LayoutDashboard } from 'lucide-react';
-import { DeviceCard } from '../components/DeviceCard';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { DeviceCard } from '../components/DeviceCard';
+import { Loader2, Activity, Shapes, ListPlus, RadioTower } from 'lucide-react';
+import type { IDevice } from '../../../shared/types';
 
 export default function Dashboard() {
-return (
-<div className="p-8 animate-in fade-in duration-500">
-    {/* Header */}
-    <header className="mb-8">
-        <p className="text-xs text-gray-400 font-semibold tracking-wide uppercase">Smart-Control IoT &gt; Dashboard</p>
-        <h1 className="text-4xl font-black mt-1 text-slate-800">Dashboard</h1>
-    </header>
+    const [devices, setDevices] = useState<IDevice[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    {/* SECCIÓN 1: RESUMEN */}
-    <section className="mb-10">
-        <h2 className="text-xl font-bold mb-4 text-slate-700">Resumen del Sistema</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    useEffect(() => {
+        fetch('http://localhost:3000/devices')
+            .then(res => res.json())
+            .then(data => {
+                setDevices(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Error fetching devices", err);
+                setLoading(false);
+            });
+    }, []);
 
-            {/* Card: Estado Dispositivos */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center">
-                <h3 className="font-bold text-slate-800 self-start mb-6">Estado de Dispositivos</h3>
-                <div className="relative flex flex-col items-center">
-                    <div className="w-32 h-16 overflow-hidden relative">
-                        <div className="w-32 h-32 border-[12px] border-slate-100 rounded-full"></div>
-                        <div
-                            className="absolute top-0 w-32 h-32 border-[12px] border-green-500 rounded-full border-b-transparent border-r-transparent -rotate-45">
+    if (loading) {
+        return (
+            <div className="p-8 animate-in fade-in flex flex-col items-center justify-center h-[70vh]">
+                <Loader2 size={64} className="text-blue-500 animate-spin mb-6" />
+                <h2 className="text-2xl font-bold text-slate-700">Analizando el Entorno</h2>
+                <p className="text-gray-400">Escaneando red local y sincronizando estadísticas...</p>
+            </div>
+        );
+    }
+
+    const totalDevices = devices.length;
+    const onlineDevices = devices.filter(d => d.status === 'online').length;
+    
+    // Contar por tipo
+    const typeCounts = devices.reduce((acc, curr) => {
+        acc[curr.type] = (acc[curr.type] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    // Ordenar dispositivo por fecha (más recientes primero)
+    const recentActivity = [...devices].sort((a: any, b: any) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    ).slice(0, 4);
+
+    return (
+        <div className="p-8 animate-in fade-in duration-500">
+            {/* Header */}
+            <header className="mb-8 border-b pb-4 border-gray-100 flex items-end justify-between">
+                <div>
+                    <h1 className="text-4xl font-black text-slate-800">Panel de Control</h1>
+                    <p className="text-sm font-semibold text-gray-400 uppercase tracking-widest mt-2">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
+            </header>
+
+            {/* SECCIÓN 1: RESUMEN ORGÁNICO */}
+            <section className="mb-10">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    {/* Card: Estado General Red */}
+                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-6 rounded-3xl shadow-xl shadow-blue-200 text-white flex flex-col justify-between relative overflow-hidden">
+                        <div className="absolute -right-8 -top-8 opacity-10">
+                            <RadioTower size={180} />
+                        </div>
+                        <div className="relative z-10">
+                            <h3 className="font-bold text-blue-100 mb-1 flex items-center gap-2"><Activity size={18} /> Pulso de Red</h3>
+                            <p className="text-sm text-blue-200 mb-6 font-medium">Dispositivos reportando telemetría local UDP</p>
+                            
+                            <div className="flex items-end gap-3 mt-4">
+                                <span className="text-7xl font-black">{onlineDevices}</span>
+                                <span className="text-2xl font-bold text-blue-300 pb-2">/ {totalDevices}</span>
+                            </div>
+                        </div>
+                        
+                        <div className="mt-4 bg-white/10 rounded-xl p-3 flex justify-between items-center relative z-10 backdrop-blur-sm">
+                            <span className="font-semibold text-sm">Salud del Ecosistema</span>
+                            <span className="font-black text-sm bg-blue-500 px-3 py-1 rounded-full shadow-inner">{totalDevices > 0 ? Math.round((onlineDevices / totalDevices) * 100) : 0}%</span>
                         </div>
                     </div>
-                    <div className="mt-[-20px] text-center">
-                        <p className="text-3xl font-black text-slate-800">15<span
-                                className="text-slate-300 text-xl">/20</span></p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Online</p>
+
+                    {/* Card: Inventario */}
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 col-span-1 lg:col-span-2">
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2"><Shapes size={20} className="text-purple-600"/> Inventario de Dispositivos</h3>
+                                <p className="text-xs text-gray-400 mt-1 uppercase font-bold tracking-widest">Distribución por Tipo</p>
+                            </div>
+                        </div>
+                        
+                        {Object.keys(typeCounts).length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-24 text-gray-400 text-sm font-semibold">
+                                No tienes dispositivos registrados aún.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {Object.entries(typeCounts).map(([type, count]) => (
+                                    <div key={type} className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex flex-col shadow-sm">
+                                        <span className="text-[10px] uppercase font-black tracking-wider text-purple-600 bg-purple-100 w-fit px-2 py-0.5 rounded-md mb-2 truncate max-w-full">
+                                            {typeof type === 'string' && type !== 'undefined' ? type : 'GENERIC'}
+                                        </span>
+                                        <span className="text-3xl font-black text-slate-700 mt-auto">{count}</span>
+                                        <span className="text-xs font-bold text-gray-500">Unidades</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
-                <p className="mt-6 text-sm text-gray-400">Todo funcionando correctamente</p>
-            </div>
+            </section>
 
-            {/* Card: Consumo */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                <div className="flex justify-between items-start">
-                    <h3 className="font-bold text-slate-800">Consumo Energético Hoy</h3>
-                    <span className="text-[10px] font-bold text-green-500 bg-green-50 px-2 py-1 rounded-md">+2% vs
-                        ayer</span>
-                </div>
-                <p className="text-3xl font-black mt-2">5.8 kWh</p>
-                <div className="h-24 mt-4 bg-purple-50 rounded-2xl relative overflow-hidden">
-                    <div className="absolute bottom-0 w-full h-12 bg-purple-200"
-                        style={{ clipPath: 'polygon(0 80%, 20% 50%, 40% 70%, 60% 30%, 80% 60%, 100% 20%, 100% 100%, 0 100%)' }}>
+            {/* SECCIÓN 2: ACCESO RÁPIDO */}
+            <section className="mb-10">
+                <div className="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-700">Acceso Rápido</h2>
+                        <p className="text-sm text-gray-400">Tus dispositivos activos</p>
                     </div>
+                    <Link to="/devices" className="inline-block bg-cyan-500 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-cyan-600 transition-all shadow-md shadow-cyan-100 text-center">
+                        Gestionar Todos
+                    </Link>
                 </div>
-            </div>
 
-            {/* Card: Alertas */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-purple-200">
-                <h3 className="font-bold text-slate-800 mb-4">Alertas Activas</h3>
-                <div className="space-y-3">
-                    <div
-                        className="bg-[#A855F7] text-white p-4 rounded-2xl flex items-center gap-3 shadow-lg shadow-purple-200">
-                        <AlertTriangle size={20} />
-                        <span className="text-xs font-bold">Puerta Garaje Abierta (hace 10m)</span>
-                    </div>
-                    <div
-                        className="bg-white border border-gray-100 p-4 rounded-2xl flex items-center gap-3 text-slate-600 shadow-sm">
-                        <AlertTriangle size={20} className="text-purple-500" />
-                        <span className="text-xs font-bold">Sensor Humedad Baño (batería baja)</span>
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {devices.length === 0 ? (
+                         <div className="col-span-full border-2 border-dashed border-gray-200 rounded-3xl p-8 text-center text-gray-400 flex flex-col items-center justify-center">
+                             <Shapes size={48} className="mb-4 text-gray-300" />
+                             <p className="font-bold">Aún no hay ecosistema</p>
+                             <p className="text-sm">Escanea la red para descubrir dispositivos</p>
+                         </div>
+                    ) : (
+                        devices.slice(0, 4).map((device) => (
+                            <DeviceCard key={device._id} device={device} />
+                        ))
+                    )}
                 </div>
-            </div>
-        </div>
-    </section>
+            </section>
 
-    {/* SECCIÓN 2: FAVORITOS */}
-    <section className="mb-10">
-        <div className="flex justify-between items-end mb-6">
-            <div>
-                <h2 className="text-xl font-bold text-slate-700">Mis Favoritos</h2>
-                <p className="text-sm text-gray-400">Vista Detallada de Dispositivos</p>
-            </div>
-            <Link to="/devices"
-                className="inline-block bg-[#A855F7] text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-purple-600 transition-all shadow-lg shadow-purple-100 text-center">
-            Ver Todos
-            </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-
-        </div>
-    </section>
-
-    {/* SECCIÓN 3: ACCIONES Y ACTIVIDAD */}
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        <div>
-            <h2 className="text-xl font-bold mb-6 text-slate-700">Acciones Rápidas</h2>
-            <div className="flex flex-wrap gap-4">
-                <button
-                    className="bg-purple-400 text-white px-6 py-4 rounded-2xl font-bold text-sm shadow-xl shadow-purple-100 hover:-translate-y-1 transition-all">
-                    Modo "Salir de Casa"
-                </button>
-                <button
-                    className="bg-purple-400 text-white px-6 py-4 rounded-2xl font-bold text-sm shadow-xl shadow-purple-100 hover:-translate-y-1 transition-all">
-                    Modo "Noche"
-                </button>
-            </div>
-        </div>
-
-        <div>
-            <h2 className="text-xl font-bold mb-6 text-slate-700">Actividad Reciente</h2>
-            <div className="space-y-4">
-                {[
-                { time: "10:45 AM", text: "Puerta Garaje se abrió", icon: LayoutDashboard },
-                { time: "09:20 AM", text: "Calefacción activada automáticamente", icon: Thermometer }
-                ].map((item, i) => (
-                <div key={i} className="flex items-center gap-4 text-sm bg-white p-3 rounded-2xl border border-gray-50">
-                    <div className="bg-slate-100 p-2 rounded-lg text-slate-500">
-                        <item.icon size={16} />
-                    </div>
-                    <span className="text-slate-400 font-bold w-20">{item.time}</span>
-                    <span className="text-slate-700 font-medium">{item.text}</span>
+            {/* SECCIÓN 3: ACTIVIDAD */}
+            <section className="mb-10">
+                <h2 className="text-xl font-bold mb-6 text-slate-700 flex items-center gap-2"><ListPlus size={24} className="text-purple-600"/> Añadidos Recientemente</h2>
+                <div className="space-y-4 max-w-4xl">
+                    {recentActivity.length === 0 ? (
+                        <p className="text-sm font-semibold text-gray-400 italic">No hay registros históricos...</p>
+                    ) : (
+                        recentActivity.map((item: any, i: number) => (
+                            <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-4 text-sm bg-white p-4 rounded-2xl border border-gray-100 shadow-sm transition-hover hover:border-blue-200">
+                                <div className="bg-blue-50 shrink-0 border border-blue-100 w-12 h-12 rounded-xl text-blue-600 flex items-center justify-center overflow-hidden p-1.5 object-contain">
+                                    {item.image ? <img src={item.image} alt="device" className="w-full h-full object-contain" /> : <Shapes size={20} />}
+                                </div>
+                                <div className="flex-1">
+                                    <p className="font-bold text-slate-800 text-base">{item.name}</p>
+                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-0.5">Vía {item.connectionType || 'Red Local UDP'} • ID: {item.attributes?.tuyaId?.substring(0,6) || 'N/A'}</p>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-xs font-bold bg-gray-100 text-gray-600 py-1.5 px-3 rounded-xl border border-gray-200 whitespace-nowrap">
+                                        {new Date(item.createdAt).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' })}
+                                    </span>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
-                ))}
-            </div>
+            </section>
+
         </div>
-    </div>
-</div>
-);
+    );
 }

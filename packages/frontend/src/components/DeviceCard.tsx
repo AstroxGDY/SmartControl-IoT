@@ -6,7 +6,7 @@ import {
 import { DeviceDetailsModal } from './DeviceDetailsModal';
 import type { DeviceType, DeviceStatus } from '../../../shared/types';
 
-// Mapa estático para evitar el error "Created during render"
+// Mapa de iconos estáticos por tipo de dispositivo
 const ICON_MAP: Record<string, LucideIcon> = {
   'smart-bulb': Lightbulb,
   'thermostat': Thermometer,
@@ -26,9 +26,25 @@ export const DeviceCard = ({ device }: DeviceCardProps) => {
 
   const Icon = ICON_MAP[device.type] || ICON_MAP.default;
 
-  // Adivinar isOn genéricamente
-  const isOn = device.attributes?.is_on_guess || (device.attributes?.dps && Object.values(device.attributes.dps).includes(true));
+  // Adivinar isOn genéricamente o usar esquema
+  let isOn = false;
+  const dps = device.attributes?.dps;
+  const schema = device.attributes?.schema || [];
+
+  if (schema.length > 0 && dps) {
+    const primarySwitch = schema.find((s: any) => s.code && s.code.startsWith('switch') && s.type === 'Boolean');
+    if (primarySwitch && dps[String(primarySwitch.dp_id)] !== undefined) {
+      isOn = dps[String(primarySwitch.dp_id)] === true;
+    } else if (dps['1'] !== undefined) {
+      isOn = dps['1'] === true; // Fallback
+    }
+  } else if (dps) {
+    isOn = dps['20'] === true || dps['1'] === true || Object.values(dps).includes(true);
+  }
+
   const isPurple = isOn;
+  const statusText = device.status === 'online' ? (isOn ? 'Encendido' : 'Apagado') : 'Desconectado';
+  const statusColor = device.status === 'online' ? (isOn ? 'bg-green-500' : 'bg-yellow-400') : 'bg-slate-300';
 
   return (
     <>
@@ -50,8 +66,8 @@ export const DeviceCard = ({ device }: DeviceCardProps) => {
           <div className="flex flex-col">
             <h4 className="font-bold text-[16px] text-slate-800 leading-tight mt-1 truncate">{device.name}</h4>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-slate-300'}`} />
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{device.status}</span>
+              <span className={`w-1.5 h-1.5 rounded-full ${statusColor}`} />
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{statusText}</span>
             </div>
           </div>
         </div>
