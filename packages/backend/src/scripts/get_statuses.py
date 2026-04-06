@@ -4,6 +4,9 @@ import sys
 import tinytuya
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+
 def fetch_device(device_data):
     dev_id = device_data.get("tuyaId")
     ip = device_data.get("ip")

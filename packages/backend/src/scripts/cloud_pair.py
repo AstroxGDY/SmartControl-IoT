@@ -3,6 +3,9 @@ import json
 import sys
 import os
 
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+
 def extraer_credenciales_nube():
     # Leer de variables de entorno para mayor seguridad (evitamos verlas en el log de pm2/node)
     API_REGION = os.environ.get("TUYA_API_REGION", "")
@@ -48,19 +51,20 @@ def extraer_credenciales_nube():
         for dev in dispositivos_lista:
             if dev.get('id') == DEVICE_ID:
                 llave_encontrada = dev.get('local_key') or dev.get('localKey') or dev.get('key')
-                
+
+                # Solo campos necesarios — evitamos serializar el objeto completo de Tuya
+                # que puede contener referencias circulares y romper json.dumps
                 datos_extraidos = {
                     "status": "success",
                     "device_id": dev.get('id'),
                     "local_key": llave_encontrada,
                     "name": dev.get('name', ''),
                     "product_name": dev.get('product_name', ''),
-                    "raw_data_api": dev
                 }
-                
+
                 print("[*] ¡Dispositivo emparejado! Mandando Local Key de vuelta a Node.js...", file=sys.stderr)
-                # El json por stdout es lo que captura node
-                print(json.dumps(datos_extraidos, ensure_ascii=False))
+                # default=str como seguro de fallo para cualquier tipo no serializable
+                print(json.dumps(datos_extraidos, ensure_ascii=False, default=str))
                 return
 
         print(json.dumps({"error": "Device ID no encontrado en los dispositivos asociados a tu cuenta de nube."}), file=sys.stdout)

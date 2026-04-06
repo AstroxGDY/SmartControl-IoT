@@ -1,6 +1,10 @@
 import tinytuya
 import json
 import os
+import sys
+
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
 
 def get_schema():
     REGION = os.environ.get("TUYA_API_REGION", "")

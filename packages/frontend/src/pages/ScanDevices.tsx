@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Radar, Wifi, Search, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 import { ScannedDeviceCard, type ScannedDevice } from '../components/ScannedDeviceCard';
+import { PortConflictModal, type PortConflict } from '../components/PortConflictModal';
 
 export default function ScanDevices() {
     const navigate = useNavigate();
@@ -10,6 +11,7 @@ export default function ScanDevices() {
     const [devicesFound, setDevicesFound] = useState<ScannedDevice[]>([]);
     const [pairingDeviceId, setPairingDeviceId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [portConflict, setPortConflict] = useState<PortConflict[] | null>(null);
     const hasMounted = useRef(false);
 
     useEffect(() => {
@@ -24,11 +26,19 @@ export default function ScanDevices() {
         setScanComplete(false);
         setDevicesFound([]);
         setError(null);
+        setPortConflict(null);
 
         try {
             const response = await fetch('http://localhost:3000/devices/scan', {
                 method: 'POST'
             });
+
+            // 409 = conflicto de puertos
+            if (response.status === 409) {
+                const data = await response.json();
+                setPortConflict(data.blockedBy || []);
+                return;
+            }
 
             if (!response.ok) {
                 throw new Error('No se pudo conectar con el servidor.');
@@ -42,6 +52,61 @@ export default function ScanDevices() {
             setIsScanning(false);
             setScanComplete(true);
         }
+    };
+
+    // Transforma errores técnicos en mensajes amigables para cualquier usuario
+    const humanizePairError = (raw: string, deviceName: string): { title: string; detail: string; hint?: string } => {
+        const r = raw.toLowerCase();
+
+        if (r.includes('maximum call stack') || r.includes('stack size exceeded') || r.includes('circular')) {
+            return {
+                title: `No pudimos conectar con "${deviceName}"`,
+                detail: 'Algo salió mal con la comunicación con el servidor de Tuya. Esto puede ocurrir de forma puntual.',
+                hint: 'Espera unos segundos y vuelve a intentarlo. Si el error continúa, reinicia la aplicación.',
+            };
+        }
+        if (r.includes('faltan credenciales') || r.includes('revisa tu .env') || r.includes('tuya cloud')) {
+            return {
+                title: 'La aplicación no está configurada',
+                detail: 'SmartControl necesita estar conectado a tu cuenta de Tuya para poder vincular dispositivos.',
+                hint: 'Contacta con el administrador de la aplicación para que configure las credenciales de acceso.',
+            };
+        }
+        if (r.includes('network error') || r.includes('failed to fetch') || r.includes('econnrefused') || r.includes('enotfound')) {
+            return {
+                title: 'Sin conexión',
+                detail: 'No se ha podido contactar con el servidor. Comprueba que tienes WiFi o que la aplicación está bien iniciada.',
+                hint: 'Cierra y vuelve a abrir la aplicación y asegúrate de estar conectado a la misma red que tus dispositivos.',
+            };
+        }
+        if (r.includes('device id no encontrado') || r.includes('no encontrado en los dispositivos')) {
+            return {
+                title: `"${deviceName}" no está vinculado a tu cuenta`,
+                detail: 'El dispositivo está en tu red local pero no aparece en tu cuenta de Tuya. Es posible que esté asociado a otra cuenta.',
+                hint: 'Abre la app oficial de Tuya y comprueba que este dispositivo aparece en tu lista de dispositivos.',
+            };
+        }
+        if (r.includes('canceló') || r.includes('código') || r.includes('unauthorized') || r.includes('invalid')) {
+            return {
+                title: 'El servidor de Tuya rechazó la solicitud',
+                detail: 'La plataforma de Tuya no ha aceptado la operación. Esto puede ser temporal o indicar un problema de permisos.',
+                hint: 'Espera unos minutos y vuelve a intentarlo. Si el problema persiste, prueba a cerrar sesión y volver a entrar en la app de Tuya.',
+            };
+        }
+        if (r.includes('timeout') || r.includes('timed out')) {
+            return {
+                title: `"${deviceName}" tardó demasiado en responder`,
+                detail: 'El dispositivo está tardando más de lo esperado. Puede estar ocupado o tener la señal WiFi débil.',
+                hint: 'Acerca el dispositivo al router y vuelve a intentarlo.',
+            };
+        }
+
+        // Error genérico sin jerga técnica
+        return {
+            title: `No se pudo vincular "${deviceName}"`,
+            detail: 'Ha ocurrido un error inesperado al intentar conectar con este dispositivo.',
+            hint: 'Vuelve a intentarlo en unos segundos. Si el error se repite varias veces, reinicia el dispositivo desde su interruptor físico.',
+        };
     };
 
     const pairDevice = async (device: ScannedDevice) => {
@@ -70,7 +135,8 @@ export default function ScanDevices() {
             setDevicesFound(prev => prev.filter(d => d.params?.tuyaId !== device.params?.tuyaId));
 
         } catch (err: any) {
-            setError(`Fallo emparejando con ${device.name}: ${err.message}`);
+            const friendly = humanizePairError(err.message || 'Error desconocido', device.name);
+            setError(JSON.stringify(friendly)); // guardamos el objeto como string para pasarlo al render
         } finally {
             setPairingDeviceId(null);
         }
@@ -78,6 +144,22 @@ export default function ScanDevices() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30">
+
+            {/* Modal de conflicto de puertos */}
+            {portConflict && (
+                <PortConflictModal
+                    conflicts={portConflict}
+                    onClose={() => {
+                        setPortConflict(null);
+                        setIsScanning(false);
+                        setScanComplete(false);
+                    }}
+                    onKilledAndRescan={() => {
+                        setPortConflict(null);
+                        startScan();
+                    }}
+                />
+            )}
             {/* Header */}
             <header className="p-6 md:p-8 flex items-center justify-between sticky top-0 bg-slate-950/80 backdrop-blur-md z-10 border-b border-white/5">
                 <button
@@ -169,15 +251,33 @@ export default function ScanDevices() {
                         </div>
                     )}
 
-                    {error && !isScanning && (
-                        <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-2xl flex items-start gap-4 backdrop-blur-sm">
-                            <AlertTriangle className="text-red-400 flex-shrink-0" size={24} />
-                            <div>
-                                <h3 className="text-red-400 font-semibold text-lg mb-1">Fallo de escaneo</h3>
-                                <p className="text-red-300/80">{error}</p>
+                    {error && !isScanning && (() => {
+                        // Intentar parsear como objeto humanizado, si falla mostrar raw
+                        let parsed: { title: string; detail: string; hint?: string } | null = null;
+                        try { parsed = JSON.parse(error); } catch {}
+
+                        return (
+                            <div className="bg-red-500/10 border border-red-500/40 p-6 rounded-2xl backdrop-blur-sm" style={{ animation: 'fadeIn .3s ease' }}>
+                                <div className="flex items-start gap-4 mb-3">
+                                    <AlertTriangle className="text-red-400 flex-shrink-0 mt-0.5" size={22} />
+                                    <div className="flex-1">
+                                        <h3 className="text-red-400 font-bold text-base mb-1">
+                                            {parsed ? parsed.title : 'Fallo de escaneo'}
+                                        </h3>
+                                        <p className="text-red-300/80 text-sm leading-relaxed">
+                                            {parsed ? parsed.detail : error}
+                                        </p>
+                                    </div>
+                                </div>
+                                {parsed?.hint && (
+                                    <div className="ml-9 mt-2 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2">
+                                        <span className="text-amber-400 text-xs font-bold uppercase tracking-wide flex-shrink-0 mt-0.5">💡 Cómo resolverlo</span>
+                                        <p className="text-amber-300/80 text-xs leading-relaxed ml-2">{parsed.hint}</p>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     {scanComplete && !isScanning && !error && (
                         <div className="space-y-6">

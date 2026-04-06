@@ -1,273 +1,377 @@
 import type { FastifyInstance } from 'fastify';
 import { Device } from '../models/Device.js';
-import { type IDeviceInfo, type IDeviceState } from '../../../shared/types.js';
-import { type TuyaStatus, mapGenericTuya } from '../utils/deviceMappers.js';
+import { type IDeviceInfo } from '../../../shared/types.js';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 
 const execAsync = promisify(exec);
 
+// ─────────────────────────────────────────────────────────────
+// CONSTANTES
+// ─────────────────────────────────────────────────────────────
 
-// UNA ÚNICA EXPORTACIÓN PARA TODAS LAS RUTAS DE DEVICES
+/** Puertos UDP/TCP que tinytuya necesita para el escaneo de red local. */
+const TUYA_PORTS = [6666, 6667, 7000] as const;
+
+/** Tamaño máximo del buffer de stdout para subprocesos Python (10 MB). */
+const EXEC_MAX_BUFFER = 10 * 1024 * 1024;
+
+// ─────────────────────────────────────────────────────────────
+// TIPOS
+// ─────────────────────────────────────────────────────────────
+
+interface PortConflict {
+  port: number;
+  pid: number;
+  name: string;
+}
+
+interface GetDeviceParams {
+  id: string;
+}
+
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Construye el entorno para todos los subprocesos Python.
+ * Fuerza UTF-8 en stdout/stderr para evitar caracteres corruptos en Windows
+ * (el sistema puede usar CP1252 por defecto).
+ */
+const pythonEnv = (extra: Record<string, string> = {}): NodeJS.ProcessEnv => ({
+  ...process.env,
+  PYTHONIOENCODING: 'utf-8',
+  PYTHONUTF8: '1', // Python 3.7+ "UTF-8 mode": afecta stdin/stdout/stderr y open()
+  ...extra,
+});
+
+/**
+ * Extrae el primer objeto JSON `{...}` de un string de stdout.
+ * Necesario porque Python puede emitir líneas de log antes del JSON.
+ */
+function extractJson(stdout: string): unknown {
+  const start = stdout.indexOf('{');
+  const end = stdout.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('No se encontró JSON en la salida del script.');
+  return JSON.parse(stdout.substring(start, end + 1));
+}
+
+/**
+ * Detecta qué procesos del sistema operativo están ocupando los puertos de Tuya.
+ * Soporta Windows (netstat + tasklist) y Unix/macOS (lsof + ps).
+ */
+async function checkTuyaPorts(): Promise<PortConflict[]> {
+  const isWindows = os.platform() === 'win32';
+  const conflicts: PortConflict[] = [];
+
+  for (const port of TUYA_PORTS) {
+    try {
+      let pid: number | null = null;
+      let procName = 'Proceso desconocido';
+
+      if (isWindows) {
+        const { stdout } = await execAsync(
+          `netstat -ano | findstr ":${port} "`,
+          { timeout: 5000 }
+        ).catch(() => ({ stdout: '' }));
+
+        for (const line of stdout.trim().split('\n').filter(Boolean)) {
+          const parts = line.trim().split(/\s+/);
+          if ((parts[1] ?? '').endsWith(`:${port}`)) {
+            const rawPid = parseInt(parts[parts.length - 1], 10);
+            if (!isNaN(rawPid) && rawPid > 0) { pid = rawPid; break; }
+          }
+        }
+
+        if (pid) {
+          const { stdout: tl } = await execAsync(
+            `tasklist /FI "PID eq ${pid}" /FO CSV /NH`,
+            { timeout: 5000 }
+          ).catch(() => ({ stdout: '' }));
+          const match = tl.match(/"([^"]+)"/);
+          if (match) procName = match[1];
+        }
+      } else {
+        const { stdout } = await execAsync(
+          `lsof -i :${port} -t`,
+          { timeout: 5000 }
+        ).catch(() => ({ stdout: '' }));
+
+        const rawPid = parseInt(stdout.trim().split('\n')[0], 10);
+        if (!isNaN(rawPid) && rawPid > 0) pid = rawPid;
+
+        if (pid) {
+          const { stdout: ps } = await execAsync(
+            `ps -p ${pid} -o comm=`,
+            { timeout: 5000 }
+          ).catch(() => ({ stdout: '' }));
+          procName = ps.trim() || procName;
+        }
+      }
+
+      if (pid) conflicts.push({ port, pid, name: procName });
+    } catch {
+      // Si un puerto falla al comprobarse, se asume libre.
+    }
+  }
+
+  // Deduplicar: un mismo proceso puede ocupar varios puertos Tuya.
+  const seen = new Set<string>();
+  return conflicts.filter(c => {
+    const key = `${c.pid}-${c.port}`;
+    return seen.has(key) ? false : (seen.add(key), true);
+  });
+}
+
+/**
+ * Termina forzosamente los procesos indicados por PID.
+ * Soporta Windows (taskkill /F) y Unix/macOS (kill -9).
+ */
+async function killProcesses(pids: number[]): Promise<{ killed: number[]; failed: number[] }> {
+  const isWindows = os.platform() === 'win32';
+  const killed: number[] = [];
+  const failed: number[] = [];
+
+  for (const pid of pids) {
+    try {
+      const cmd = isWindows ? `taskkill /F /PID ${pid}` : `kill -9 ${pid}`;
+      await execAsync(cmd, { timeout: 5000 });
+      killed.push(pid);
+    } catch {
+      failed.push(pid);
+    }
+  }
+
+  return { killed, failed };
+}
+
+// ─────────────────────────────────────────────────────────────
+// RUTAS
+// ─────────────────────────────────────────────────────────────
+
 export default async function deviceRoutes(fastify: FastifyInstance) {
 
-  // ==========================================================
-  // 1. SEED: Mock de datos iniciales
-  // POST /devices/seed -> Llenará la base de datos para pruebas
-  // ==========================================================
-  fastify.post('/seed', async (request, reply) => {
-    await Device.deleteMany({}); // Limpia la colección primero
-
-    const mockData = [
-      {
-        name: "Luz Salón",
-        type: "smart-bulb",
-        connectionType: "WiFi",
-        status: "online",
-        attributes: { brightness: 80, color: "#FFA500" }
-      },
-      {
-        name: "Sensor Jardín",
-        type: "sensor",
-        connectionType: "Zigbee",
-        status: "online",
-        image: "https://placehold.co/100x100/green/white?text=Sensor",
-        attributes: { temperature: 24, humidity: 60, battery: 90 }
-      },
-      {
-        name: "Cámara Puerta",
-        type: "camera",
-        connectionType: "WiFi",
-        status: "offline",
-        image: "https://placehold.co/100x100/black/white?text=Cam",
-        attributes: { resolution: "1080p", recordingMode: "motion-detect" }
-      }
-    ];
-
-    const created = await Device.insertMany(mockData);
-    return { status: 'Base de datos poblada', count: created.length };
-  });
-
-  // ==========================================================
-  // 2. GET: Obtener todos (Info Estática para las Cards)
-  // GET /devices/
-  // ==========================================================
-  fastify.get<{ Reply: IDeviceInfo[] }>('/', async (request, reply) => {
+  // ── GET /devices/ ────────────────────────────────────────────
+  // Devuelve todos los dispositivos de la BD. Si tienen credenciales
+  // locales (IP + LocalKey), consulta su estado en vivo vía UDP y
+  // actualiza status/dps en la BD en background.
+  fastify.get<{ Reply: IDeviceInfo[] }>('/', async (_request, _reply) => {
     let devices = (await Device.find()
       .select('name type connectionType status image owner attributes createdAt updatedAt')
       .lean()) as any[];
 
-    // =============== LIVE LOCAL POLLING =================
-    const queryData = devices.map(d => ({
+    // Polleo en vivo solo los dispositivos con credenciales locales completas
+    const queryData = devices
+      .map(d => ({
         _id: d._id.toString(),
         tuyaId: d.attributes?.tuyaId,
         ip: d.attributes?.ip,
         localKey: d.attributes?.localKey,
-        version: d.attributes?.version || '3.3'
-    })).filter(d => d.tuyaId && d.ip && d.localKey);
+        version: d.attributes?.version ?? '3.3',
+      }))
+      .filter(d => d.tuyaId && d.ip && d.localKey);
 
     if (queryData.length > 0) {
-        try {
-            console.log(`[IoT] Consultando estado en vivo de ${queryData.length} dispositivos para la vista principal...`);
-            const tempFile = path.resolve(process.cwd(), `temp_query_${Date.now()}.json`);
-            await fs.writeFile(tempFile, JSON.stringify(queryData), 'utf-8');
-            
-            const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'get_statuses.py');
-            const { stdout } = await execAsync(`python "${scriptPath}" "${tempFile}"`, { env: process.env });
-            
-            await fs.unlink(tempFile).catch(() => {}); // Limpiar
-            
-            const firstBrace = stdout.indexOf('{');
-            const lastBrace = stdout.lastIndexOf('}');
-            if (firstBrace !== -1 && lastBrace !== -1) {
-                const result = JSON.parse(stdout.substring(firstBrace, lastBrace + 1));
-                if (result.success && result.results) {
-                    // Actualizar en memoria y persistir en la DB en background
-                    for (const live of result.results) {
-                        const idx = devices.findIndex(d => d._id.toString() === live._id);
-                        if (idx !== -1) {
-                            if (live.success && live.dps) {
-                                devices[idx].status = 'online';
-                                devices[idx].attributes = { ...devices[idx].attributes, dps: live.dps };
-                                Device.updateOne(
-                                    { _id: devices[idx]._id },
-                                    { $set: { status: 'online', 'attributes.dps': live.dps } }
-                                ).exec().catch(() => {});
-                            } else {
-                                devices[idx].status = 'offline';
-                                Device.updateOne({ _id: devices[idx]._id }, { $set: { status: 'offline' } }).exec().catch(() => {});
-                            }
-                        }
-                    }
-                }
+      const tempFile = path.join(os.tmpdir(), `sc_query_${Date.now()}.json`);
+      try {
+        console.log(`[IoT] Consultando estado en vivo de ${queryData.length} dispositivo(s)...`);
+        await fs.writeFile(tempFile, JSON.stringify(queryData), 'utf-8');
+
+        const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'get_statuses.py');
+        const { stdout } = await execAsync(
+          `python "${scriptPath}" "${tempFile}"`,
+          { env: pythonEnv(), maxBuffer: EXEC_MAX_BUFFER }
+        );
+
+        const result = extractJson(stdout) as any;
+        if (result.success && Array.isArray(result.results)) {
+          for (const live of result.results) {
+            const idx = devices.findIndex(d => d._id.toString() === live._id);
+            if (idx === -1) continue;
+
+            if (live.success && live.dps) {
+              devices[idx].status = 'online';
+              devices[idx].attributes = { ...devices[idx].attributes, dps: live.dps };
+              Device.updateOne(
+                { _id: devices[idx]._id },
+                { $set: { status: 'online', 'attributes.dps': live.dps } }
+              ).exec().catch(() => {});
+            } else {
+              devices[idx].status = 'offline';
+              Device.updateOne({ _id: devices[idx]._id }, { $set: { status: 'offline' } })
+                .exec().catch(() => {});
             }
-        } catch (e) {
-            console.warn('[IoT] Fallo al consultar múltiples estados en paralelo:', e);
-            // Ignoramos y borramos archivo si quedó tirado
-            const tempMatches = await fs.readdir(process.cwd());
-            tempMatches.filter(f => f.startsWith('temp_query_')).forEach(f => fs.unlink(path.resolve(process.cwd(), f)).catch(()=>{}));
+          }
         }
+      } catch (e) {
+        console.warn('[IoT] Fallo al consultar estados en paralelo:', (e as Error).message);
+      } finally {
+        await fs.unlink(tempFile).catch(() => {});
+      }
     }
-    // ====================================================
 
-    const formattedDevices: IDeviceInfo[] = devices.map(device => ({
-      ...device,
-      _id: device._id.toString(),
-    }));
-
-    return formattedDevices;
+    return devices.map(d => ({ ...d, _id: d._id.toString() })) as IDeviceInfo[];
   });
 
-  // ==========================================================
-  // 3. POST: Crear uno nuevo (Guardar en BBDD)
-  // POST /devices/
-  // ==========================================================
-  fastify.post<{ Body: IDeviceInfo; Reply: IDeviceInfo }>('/', async (request, reply) => {
+  // ── POST /devices/ ───────────────────────────────────────────
+  // Crea un dispositivo manualmente (sin escaneo).
+  fastify.post<{ Body: IDeviceInfo; Reply: IDeviceInfo }>('/', async (request, _reply) => {
     const { name, type, connectionType, image, owner } = request.body;
-
-    const newDevice = new Device({
-      name,
-      type,
-      connectionType,
-      image,
-      owner
-    });
-
-    const savedDevice = await newDevice.save();
-    const deviceObject = savedDevice.toObject();
-
-    return {
-      ...deviceObject,
-      _id: deviceObject._id.toString()
-    };
+    const saved = await new Device({ name, type, connectionType, image, owner }).save();
+    const obj = saved.toObject();
+    return { ...obj, _id: obj._id.toString() };
   });
 
-  // ==========================================================
-  // 3.5. POST: Escanear nuevos dispositivos en la red
-  // POST /devices/scan
-  // ==========================================================
-  fastify.post('/scan', async (request, reply) => {
-    console.log('[IoT] Iniciando escaneo de dispositivos nativo con Python (tinytuya) debido a encriptación...');
+  // ── GET /devices/check-ports ─────────────────────────────────
+  // Comprueba si los puertos de Tuya están libres.
+  fastify.get('/check-ports', async () => {
+    const conflicts = await checkTuyaPorts();
+    return { conflicts };
+  });
+
+  // ── POST /devices/kill-ports ─────────────────────────────────
+  // Termina los procesos que bloquean los puertos de Tuya.
+  fastify.post<{ Body: { pids: number[] } }>('/kill-ports', async (request, reply) => {
+    const { pids } = request.body;
+    if (!Array.isArray(pids) || pids.length === 0) {
+      return reply.status(400).send({ error: 'Debes enviar un array de PIDs.' });
+    }
+
+    console.log(`[IoT] Cerrando procesos con PIDs: ${pids.join(', ')}`);
+    const result = await killProcesses(pids);
+
+    // Pausa para que el SO libere los sockets antes de reanudad el escaneo.
+    await new Promise(r => setTimeout(r, 800));
+
+    return result;
+  });
+
+  // ── POST /devices/scan ───────────────────────────────────────
+  // Escanea la red local con tinytuya, cruza los resultados con
+  // Tuya Cloud y devuelve los dispositivos nuevos (no en la BD).
+  // Devuelve 409 si algún puerto está ocupado.
+  fastify.post('/scan', async (_request, reply) => {
+    console.log('[IoT] Iniciando escaneo de red local con tinytuya...');
 
     try {
-      // Usamos tinytuya, la única forma fácil y robusta de romper la encriptación UDP v3.4 sin tener el ID/KEY previo.
+      const conflicts = await checkTuyaPorts();
+      if (conflicts.length > 0) {
+        console.warn('[IoT] Puertos Tuya bloqueados:', conflicts.map(c => `${c.port} (PID ${c.pid})`));
+        return reply.status(409).send({
+          portConflict: true,
+          blockedBy: conflicts,
+          message: `Los puertos ${TUYA_PORTS.join(', ')} están siendo usados por otras aplicaciones.`,
+        });
+      }
+
       const snapshotPath = path.resolve(process.cwd(), 'snapshot.json');
 
-      console.log(`[IoT DEBUG] Ejecutando: python -m tinytuya scan -nocolor -y -snapshot-file "${snapshotPath}"`);
-      await execAsync(`python -m tinytuya scan -nocolor -y -snapshot-file "${snapshotPath}"`);
+      console.log('[IoT] Ejecutando: python -m tinytuya scan ...');
+      await execAsync(
+        `python -m tinytuya scan -nocolor -y -snapshot-file "${snapshotPath}"`,
+        { maxBuffer: EXEC_MAX_BUFFER }
+      );
 
-      // Extraer datos descifrados de forma segura del snapshot
-      let scanData = { devices: [] };
+      // Leer snapshot generado por tinytuya
+      let scanData: { devices: any[] } = { devices: [] };
       try {
-        const fileContent = await fs.readFile(snapshotPath, 'utf8');
-        scanData = JSON.parse(fileContent);
-      } catch (err) {
-        console.warn('[IoT DEBUG] No se pudo leer snapshot.json. Seguramente la red no devuelva nada válido.');
+        scanData = JSON.parse(await fs.readFile(snapshotPath, 'utf8'));
+      } catch {
+        console.warn('[IoT] Snapshot vacío o inválido — la red puede no tener dispositivos Tuya.');
       }
+      await fs.unlink(snapshotPath).catch(() => {});
 
-      // Limpiamos la basura generada
-      try {
-        await fs.unlink(snapshotPath);
-      } catch (e) {
-        // Nada
-      }
-
-      // ===================================
-      // FETCH NUBE: Obtener nombres y dps
-      // ===================================
+      // Cruzar con datos de Tuya Cloud (nombre, icono, localKey)
       let cloudDevices: any[] = [];
       try {
         const cloudScript = path.resolve(process.cwd(), 'src', 'scripts', 'cloud_scan.py');
-        const { stdout: cloudOut } = await execAsync(`python "${cloudScript}"`, { env: process.env });
-        const cJsonMatch = cloudOut.match(/\[[\s\S]*\]/);
-        if (cJsonMatch) {
-          cloudDevices = JSON.parse(cJsonMatch[0]);
-        }
+        const { stdout: cloudOut } = await execAsync(
+          `python "${cloudScript}"`,
+          { env: pythonEnv(), maxBuffer: EXEC_MAX_BUFFER }
+        );
+        const match = cloudOut.match(/\[[\s\S]*\]/);
+        if (match) cloudDevices = JSON.parse(match[0]);
       } catch (e) {
-        console.warn('[IoT DEBUG] No se pudo obtener la nube para hacer cross-match', e);
+        console.warn('[IoT] Sin datos de nube para cross-match:', (e as Error).message);
       }
 
-      // ===================================
-      // MERGE LOCAL + CLOUD
-      // ===================================
-      const foundDevices = scanData.devices.map((d: any, idx: number) => {
-        // Buscar el id en la nube
-        const cMatch = cloudDevices.find((c: any) => c.id === d.id);
-
+      // Merge local + cloud
+      const foundDevices = (scanData.devices as any[]).map((d, idx) => {
+        const cloud = cloudDevices.find((c: any) => c.id === d.id);
+        const suffix = String(d.id).slice(-4).toUpperCase();
         return {
-          name: cMatch?.name || d.name || `Dispositivo Inteligente ${d.id.substring(d.id.length - 4).toUpperCase()}`,
-          type: cMatch?.category || d.dev_type || (d.productKey ? 'smart-device' : 'unknown'),
+          name: cloud?.name ?? d.name ?? `Dispositivo ${suffix}`,
+          type: cloud?.category ?? d.dev_type ?? 'smart-device',
           connectionType: 'WiFi',
           status: 'online',
-          image: cMatch?.icon || `https://placehold.co/100x100/cyan/white?text=Nuevo+${idx + 1}`,
+          image: cloud?.icon ?? `https://placehold.co/100x100/cyan/white?text=${idx + 1}`,
           params: {
             tuyaId: d.id,
             ip: d.ip,
             productKey: d.productKey,
-            version: d.ver || d.version,
-            localKey: cMatch?.local_key, // Si ya lo pilla aquí nos ahorramos el /pair
-            dps: cMatch?.dps
-          }
+            version: d.ver ?? d.version,
+            localKey: cloud?.local_key,
+            dps: cloud?.dps,
+          },
         };
       });
 
-      console.log(`[IoT] Escaneo finalizado. Encontrados ${foundDevices.length} dispositivos mediante desencriptación.`);
-      return { message: 'Escaneo finalizado', devices: foundDevices };
+      // Filtrar los que ya están en la BD
+      const existing = await Device.find(
+        { 'attributes.tuyaId': { $exists: true, $ne: null } },
+        { 'attributes.tuyaId': 1, _id: 0 }
+      ).lean();
+      const existingIds = new Set(existing.map((d: any) => d.attributes?.tuyaId).filter(Boolean));
+
+      const newDevices = foundDevices.filter(d => !existingIds.has(d.params.tuyaId));
+      console.log(
+        `[IoT] Escaneo completo: ${foundDevices.length} encontrados, ` +
+        `${newDevices.length} nuevos, ${foundDevices.length - newDevices.length} ya añadidos.`
+      );
+
+      return { message: 'Escaneo finalizado', devices: newDevices };
 
     } catch (error: any) {
-      console.error('[IoT ERROR] Error ejecutando python tinytuya:', error.message);
-      return reply.status(500).send({ error: 'Fallo fatal en script desencriptador de red local.' });
+      console.error('[IoT ERROR] Fallo en escaneo:', error.message);
+      return reply.status(500).send({ error: 'Error ejecutando el escáner de red.' });
     }
   });
 
-  // ==========================================================
-  // 3.6. POST: Emparejar Dispositivo (Obtener LocalKey de la Nube)
-  // POST /devices/pair
-  // ==========================================================
+  // ── POST /devices/pair ───────────────────────────────────────
+  // Obtiene la LocalKey del dispositivo desde Tuya Cloud y lo guarda
+  // en la BD como dispositivo vinculado.
   fastify.post('/pair', async (request, reply) => {
     const { deviceData } = request.body as any;
 
-    if (!deviceData || !deviceData.params || !deviceData.params.tuyaId) {
+    if (!deviceData?.params?.tuyaId) {
       return reply.status(400).send({ error: 'Datos de dispositivo inválidos. Falta tuyaId.' });
     }
 
     const { tuyaId, ip, version, productKey } = deviceData.params;
-    console.log(`[IoT Cloud] Intentando emparejar dispositivo [${deviceData.name}] (TuyaID: ${tuyaId})...`);
+    console.log(`[IoT] Emparejando [${deviceData.name}] (TuyaID: ${tuyaId})...`);
 
     const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'cloud_pair.py');
 
     try {
-      // Inyectamos las variables locales hacia python de forma segura en el proceso
-      const envObj = {
-        ...process.env,
-        TUYA_DEVICE_ID: tuyaId
-      };
+      const { stdout, stderr } = await execAsync(
+        `python "${scriptPath}"`,
+        { env: pythonEnv({ TUYA_DEVICE_ID: tuyaId }), maxBuffer: EXEC_MAX_BUFFER }
+      );
 
-      const { stdout, stderr } = await execAsync(`python "${scriptPath}"`, { env: envObj });
-
-      // Cortamos exactamente desde la primera llave `{` hasta la última llave `}` para aislar el JSON puro de saltos de línea (\r\n) u otros prints.
-      const firstBrace = stdout.indexOf('{');
-      const lastBrace = stdout.lastIndexOf('}');
-
-      if (firstBrace === -1 || lastBrace === -1) {
-        console.error('[IoT ERROR] Salida de Python incomprensible:', stdout, stderr);
-        return reply.status(500).send({ error: `Fallo sin JSON: ${stdout.substring(0, 50)}...` });
-      }
-
-      const jsonStr = stdout.substring(firstBrace, lastBrace + 1);
-      const result = JSON.parse(jsonStr);
+      const result = extractJson(stdout) as any;
 
       if (result.error) {
         return reply.status(500).send({ error: result.error });
       }
 
       const localKey = result.local_key;
-      console.log(`[IoT Cloud] ¡LocalKey obtenida con código de encriptación! Guardando en la BBDD...`);
+      console.log(`[IoT] LocalKey obtenida. Guardando en la BD...`);
 
-      // Ahora que tenemos la clave local, podemos guardar el dispositivo real en MongoDB
-      const newDevice = new Device({
+      const saved = await new Device({
         name: deviceData.name,
         type: deviceData.type,
         connectionType: deviceData.connectionType,
@@ -279,116 +383,85 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
           version,
           localKey,
           productKey,
-          dps: deviceData.params.dps || {}
-        }
-      });
+          dps: deviceData.params.dps ?? {},
+        },
+      }).save();
 
-      const savedDevice = await newDevice.save();
-
-      return {
-        message: '¡Emparejado con éxito!',
-        device: savedDevice
-      };
+      return { message: '¡Emparejado con éxito!', device: saved };
 
     } catch (error: any) {
-      console.error('[IoT ERROR] Excepción al emparejar con la nube de Tuya:', error.message);
-      // Extraemos el error stdout si existe (cuando python hace crash total)
-      const details = error.stdout ? error.stdout.toString() : error.message;
-      return reply.status(500).send({ error: `Error del sistema: ${details.substring(0, 100)}` });
+      console.error('[IoT ERROR] Fallo al emparejar:', error.message);
+      const details = (error.stdout ?? error.message ?? '').toString().substring(0, 150);
+      return reply.status(500).send({ error: `Error del sistema: ${details}` });
     }
   });
 
-  interface GetDeviceParams {
-    id: string;
-  }
+  // ── GET /devices/:id/state ───────────────────────────────────
+  // Solicita el estado en tiempo real de un dispositivo vía UDP local.
+  // Si no tiene schema de DPs, lo descarga de Tuya Cloud y lo persiste.
+  fastify.get<{ Params: GetDeviceParams; Reply: any }>('/:id/state', async (request, reply) => {
+    const { id } = request.params;
+    const device = await Device.findById(id).lean();
 
-  // ==========================================================
-  // 4. GET: Obtener información concreta/dinámica (Mapeada)
-  // GET /devices/:id/state
-  // ==========================================================
-  fastify.get<{ Params: GetDeviceParams; Reply: any }>(
-    '/:id/state',
-    async (request, reply) => {
-      const { id } = request.params;
+    if (!device) return reply.status(404).send({ error: 'Dispositivo no encontrado.' });
 
-      const device = await Device.findById(id).lean();
+    const { tuyaId, ip, localKey, version, schema: storedSchema } = device.attributes ?? {};
+    if (!tuyaId || !ip || !localKey) {
+      return reply.status(400).send({ error: 'Faltan credenciales locales (tuyaId, ip, localKey).' });
+    }
 
-      if (!device) {
-        return reply.status(404).send({ error: 'Dispositivo no encontrado en la base de datos' });
-      }
+    console.log(`[IoT] Consultando estado en vivo de [${device.name}]...`);
 
-      if (!device.attributes || !device.attributes.ip || !device.attributes.localKey || !device.attributes.tuyaId) {
-        return reply.status(400).send({ error: 'Faltan credenciales locales para consultar estado' });
-      }
-
-      console.log(`[IoT] Solicitando STATUS real para [${device.name}] (Tipo: ${device.type})`);
-
-      // 1. GESTIÓN DEL DICCIONARIO (SCHEMA)
-      let schema = device.attributes.schema;
-      if (!schema && process.env.TUYA_API_REGION) {
-        console.log(`[IoT] Descargando DB de Diccionario (Schema) faltante de [${device.name}]...`);
-        const schemaPath = path.resolve(process.cwd(), 'src', 'scripts', 'get_schema.py');
-        const schemaEnv = {
-          ...process.env,
-          TUYA_DEVICE_ID: device.attributes.tuyaId
-        };
-        try {
-          const { stdout } = await execAsync(`python "${schemaPath}"`, { env: schemaEnv });
-          const fb = stdout.indexOf('{');
-          const lb = stdout.lastIndexOf('}');
-          if (fb !== -1 && lb !== -1) {
-            const schRes = JSON.parse(stdout.substring(fb, lb + 1));
-            if (schRes.success && schRes.schema) {
-              schema = schRes.schema;
-              // Guardar en la bbdd permanentemente en background
-              await Device.updateOne({ _id: id }, { $set: { 'attributes.schema': schema } });
-            }
-          }
-        } catch(e) {
-          console.warn('[IoT] No se pudo obtener el schema dinámico', e);
-        }
-      }
-
-      // 2. GESTIÓN DE DPS
-      const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'get_status.py');
-      const envObj = {
-        ...process.env,
-        TUYA_DEVICE_ID: device.attributes.tuyaId,
-        TUYA_IP: device.attributes.ip,
-        TUYA_LOCAL_KEY: device.attributes.localKey,
-        TUYA_VERSION: device.attributes.version || '3.3'
-      };
-
+    // Descargar schema de DPs si no está en la BD
+    let schema = storedSchema;
+    if (!schema && process.env.TUYA_API_REGION) {
       try {
-        const { stdout, stderr } = await execAsync(`python "${scriptPath}"`, { env: envObj });
-        
-        const firstBrace = stdout.indexOf('{');
-        const lastBrace = stdout.lastIndexOf('}');
-        if (firstBrace === -1 || lastBrace === -1) {
-          throw new Error('Sin salida JSON de Python');
+        const schemaScript = path.resolve(process.cwd(), 'src', 'scripts', 'get_schema.py');
+        const { stdout } = await execAsync(
+          `python "${schemaScript}"`,
+          { env: pythonEnv({ TUYA_DEVICE_ID: tuyaId }), maxBuffer: EXEC_MAX_BUFFER }
+        );
+        const res = extractJson(stdout) as any;
+        if (res.success && res.schema) {
+          schema = res.schema;
+          Device.updateOne({ _id: id }, { $set: { 'attributes.schema': schema } }).exec().catch(() => {});
         }
-
-        const result = JSON.parse(stdout.substring(firstBrace, lastBrace + 1));
-        
-        if (result.error) {
-          // Si el dispositivo está apagado físicamente, Tuya da "Network Error" usualmente u otro error.
-          return reply.status(503).send({ error: result.error, offline: true });
-        }
-        
-        // Devolvemos exitosamente los DPS reales junto al diccionario semántico
-        return { success: true, dps: result.data.dps || {}, schema: schema || [] };
-
-      } catch (error: any) {
-        console.error('[IoT ERROR] Error consultando status:', error.message);
-        return reply.status(503).send({ error: 'Error de red con el dispositivo', offline: true });
+      } catch (e) {
+        console.warn('[IoT] No se pudo obtener el schema:', (e as Error).message);
       }
     }
-  );
 
-  // ==========================================================
-  // 5. POST: Enviar Comando (Encender/Apagar)
-  // POST /devices/:id/command
-  // ==========================================================
+    // Consultar DPs en tiempo real
+    const statusScript = path.resolve(process.cwd(), 'src', 'scripts', 'get_status.py');
+    try {
+      const { stdout } = await execAsync(
+        `python "${statusScript}"`,
+        {
+          env: pythonEnv({
+            TUYA_DEVICE_ID: tuyaId,
+            TUYA_IP: ip,
+            TUYA_LOCAL_KEY: localKey,
+            TUYA_VERSION: String(version ?? '3.3'),
+          }),
+          maxBuffer: EXEC_MAX_BUFFER,
+        }
+      );
+
+      const result = extractJson(stdout) as any;
+      if (result.error) {
+        return reply.status(503).send({ error: result.error, offline: true });
+      }
+
+      return { success: true, dps: result.data?.dps ?? {}, schema: schema ?? [] };
+
+    } catch (e: any) {
+      console.error('[IoT ERROR] Fallo consultando estado:', e.message);
+      return reply.status(503).send({ error: 'Error de red con el dispositivo.', offline: true });
+    }
+  });
+
+  // ── POST /devices/:id/command ────────────────────────────────
+  // Envía un comando DP (Data Point) a un dispositivo vía UDP local.
   fastify.post<{ Params: GetDeviceParams; Body: { dp: string; value: any }; Reply: any }>(
     '/:id/command',
     async (request, reply) => {
@@ -396,42 +469,51 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
       const { dp, value } = request.body;
 
       const device = await Device.findById(id).lean();
-      if (!device) {
-        return reply.status(404).send({ error: 'Dispositivo no encontrado' });
+      if (!device) return reply.status(404).send({ error: 'Dispositivo no encontrado.' });
+
+      const { tuyaId, ip, localKey, version } = device.attributes ?? {};
+      if (!tuyaId || !ip || !localKey) {
+        return reply.status(400).send({ error: 'Faltan credenciales locales para enviar comando.' });
       }
 
-      if (!device.attributes || !device.attributes.ip || !device.attributes.localKey || !device.attributes.tuyaId) {
-        return reply.status(400).send({ error: 'Faltan credenciales locales para enviar comando' });
-      }
-
-      const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'send_command.py');
-      const envObj = {
-        ...process.env,
-        TUYA_DEVICE_ID: device.attributes.tuyaId,
-        TUYA_IP: device.attributes.ip,
-        TUYA_LOCAL_KEY: device.attributes.localKey,
-        TUYA_VERSION: device.attributes.version || '3.3',
-        TUYA_DP: dp,
-        TUYA_VALUE: String(value)
-      };
-
+      const cmdScript = path.resolve(process.cwd(), 'src', 'scripts', 'send_command.py');
       try {
-        const { stdout, stderr } = await execAsync(`python "${scriptPath}"`, { env: envObj });
+        const { stdout } = await execAsync(
+          `python "${cmdScript}"`,
+          {
+            env: pythonEnv({
+              TUYA_DEVICE_ID: tuyaId,
+              TUYA_IP: ip,
+              TUYA_LOCAL_KEY: localKey,
+              TUYA_VERSION: String(version ?? '3.3'),
+              TUYA_DP: dp,
+              TUYA_VALUE: String(value),
+            }),
+            maxBuffer: EXEC_MAX_BUFFER,
+          }
+        );
 
-        const firstBrace = stdout.indexOf('{');
-        const lastBrace = stdout.lastIndexOf('}');
-        if (firstBrace === -1 || lastBrace === -1) {
-          throw new Error('Sin salida JSON de Python');
-        }
-
-        const result = JSON.parse(stdout.substring(firstBrace, lastBrace + 1));
+        const result = extractJson(stdout) as any;
         if (result.error) return reply.status(500).send(result);
-
         return { success: true, ...result };
-      } catch (error: any) {
-        console.error('[IoT ERROR] Error enviando comando:', error.message);
-        return reply.status(500).send({ error: 'Error enviando comando a dispositivo' });
+
+      } catch (e: any) {
+        console.error('[IoT ERROR] Fallo enviando comando:', e.message);
+        return reply.status(500).send({ error: 'Error al enviar el comando al dispositivo.' });
       }
     }
   );
+
+  // ── DELETE /devices/:id ──────────────────────────────────────
+  // Elimina un dispositivo de la BD (desvinculación local).
+  // El dispositivo físico no se ve afectado.
+  fastify.delete<{ Params: GetDeviceParams }>('/:id', async (request, reply) => {
+    const { id } = request.params;
+    const deleted = await Device.findByIdAndDelete(id);
+
+    if (!deleted) return reply.status(404).send({ error: 'Dispositivo no encontrado.' });
+
+    console.log(`[IoT] Dispositivo [${deleted.name}] (${id}) eliminado de la BD.`);
+    return { success: true, message: `Dispositivo "${deleted.name}" desvinculado correctamente.` };
+  });
 }

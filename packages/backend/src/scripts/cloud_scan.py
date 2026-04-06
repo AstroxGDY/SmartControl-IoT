@@ -3,6 +3,9 @@ import json
 import sys
 import os
 
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+
 def obtener_nube():
     REGION = os.environ.get("TUYA_API_REGION", "")
     KEY = os.environ.get("TUYA_API_KEY", "")

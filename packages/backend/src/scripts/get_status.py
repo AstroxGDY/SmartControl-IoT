@@ -3,6 +3,9 @@ import sys
 import json
 import os
 
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+
 def get_status():
     try:
         DEVICE_ID = os.environ.get("TUYA_DEVICE_ID", "")

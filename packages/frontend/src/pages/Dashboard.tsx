@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { DeviceCard } from '../components/DeviceCard';
 import { Loader2, Activity, Shapes, ListPlus, RadioTower } from 'lucide-react';
@@ -8,7 +8,8 @@ export default function Dashboard() {
     const [devices, setDevices] = useState<IDevice[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    const fetchDevices = (silent = false) => {
+        if (!silent) setLoading(true);
         fetch('http://localhost:3000/devices')
             .then(res => res.json())
             .then(data => {
@@ -19,7 +20,15 @@ export default function Dashboard() {
                 console.error("Error fetching devices", err);
                 setLoading(false);
             });
+    };
+
+    useEffect(() => {
+        fetchDevices();
     }, []);
+
+    const handleDeviceDeleted = () => {
+        fetchDevices(true); // silent: no spinner, solo actualiza la lista
+    };
 
     if (loading) {
         return (
@@ -131,7 +140,7 @@ export default function Dashboard() {
                          </div>
                     ) : (
                         devices.slice(0, 4).map((device) => (
-                            <DeviceCard key={device._id} device={device} />
+                            <DeviceCard key={device._id} device={device} onDeleted={handleDeviceDeleted} />
                         ))
                     )}
                 </div>
