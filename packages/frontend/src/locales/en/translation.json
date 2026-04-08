@@ -1,0 +1,156 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "devices": "Devices",
+    "scanner": "Scanner",
+    "help": "Help",
+    "logout": "Logout",
+    "toggle_dark": "Switch to Dark Mode",
+    "toggle_light": "Switch to Light Mode"
+  },
+  "dashboard": {
+    "title": "Control Panel",
+    "analyzing": "Analyzing Environment",
+    "syncing": "Scanning local network and syncing statistics...",
+    "network_pulse": "Network Pulse",
+    "network_pulse_desc": "Devices reporting local UDP telemetry",
+    "ecosystem_health": "Ecosystem Health",
+    "inventory": "Device Inventory",
+    "distribution_type": "Distribution by Type",
+    "units": "Units",
+    "no_devices": "You don't have any registered devices yet.",
+    "quick_access": "Quick Access",
+    "active_devices": "Your active devices",
+    "manage_all": "Manage All",
+    "empty_ecosystem": "No ecosystem yet",
+    "empty_ecosystem_desc": "Scan the network to discover devices",
+    "recent_activity": "Recently Added",
+    "via": "Via",
+    "local_udp": "Local UDP Network",
+    "no_activity": "No historical records..."
+  },
+  "device_card": {
+    "status": {
+      "on": "On",
+      "off": "Off",
+      "offline": "Offline"
+    },
+    "unlink": {
+      "title": "Unlink device?",
+      "confirm_text": "{{name}} will be deleted from the local database. You can add it back from the network scanner.",
+      "warning": "This action only deletes the local record. The physical device will not be affected.",
+      "cancel": "Cancel",
+      "confirm": "Yes, delete",
+      "deleting": "Unlinking...",
+      "error": "Error deleting"
+    },
+    "details": "VIEW DETAILS"
+  },
+  "device_details": {
+    "connecting": "Connecting...",
+    "telemetry_udp": "Obtaining real-time telemetry via UDP",
+    "network_metadata": "Network Metadata",
+    "local_ip": "Local IP",
+    "connection": "Connection",
+    "local_key": "Local Key (Secret)",
+    "data_points": "Data Points",
+    "mapping_cloud": "(Cloud Mapping)",
+    "raw": "(Raw)",
+    "no_dps": "No Data Points detected. Is the device physically disconnected?",
+    "offline_msg": "The device is not available on the network. Check if it is plugged in and connected to WiFi.",
+    "device_off": "Device Off",
+    "debug": "DEBUG: Telemetry"
+  },
+  "scan": {
+    "title": "Network Scanner",
+    "scanning": "Scanning...",
+    "start_scan": "Search Devices",
+    "stop_scan": "Stop",
+    "complete": "Scan Complete",
+    "found": "Devices found",
+    "pairing": "Pairing...",
+    "add_to_network": "Add to network",
+    "port_conflict": {
+      "title": "Port conflict detected",
+      "desc": "Tuya needs ports <span className=\"text-orange-600 dark:text-orange-400 font-mono font-semibold\">6666, 6667, 7000</span> to scan the network. Another application is using them.",
+      "blocking_apps": "Blocking applications",
+      "pid_port": "PID: {{pid}} · Port{{suffix}}: {{ports}}",
+      "how_to_solve": "How do you want to resolve the conflict?",
+      "auto_close": {
+        "title": "Close apps automatically",
+        "desc": "Our program will close the listed apps and retry."
+      },
+      "manual": {
+        "title": "I'll do it myself",
+        "desc": "Close the apps manually and scan again."
+      },
+      "confirm_kill": {
+        "title": "Confirm force close?",
+        "desc": "<strong>{{count}}</strong> process{{suffix}} ({{names}}) will be closed. Make sure to save your work in those applications before continuing.",
+        "action": "Yes, close and scan"
+      },
+      "killing": {
+        "title": "Closing processes...",
+        "desc": "Waiting for the system to release the ports."
+      },
+      "error_kill": "Unknown error while closing processes.",
+      "error_failed_pids": "Could not close processes with PID: {{pids}}. Try closing them manually."
+    },
+    "none_found": "No devices found",
+    "scan_desc": "Search for new smart devices on your WiFi or Zigbee network to pair them with your ecosystem.",
+    "scan_advice": "Make sure your Tuya devices are powered on and connected to your current local network.",
+    "analyzing_freq": "Analyzing detected frequencies...",
+    "searching": "Searching",
+    "scan_action": "Scan",
+    "error_scan": "There was a problem scanning.",
+    "error_pair_fallback": "Failed retrieving keys from the Tuya cloud.",
+    "error_invalid_id": "Device has no valid ID for pairing.",
+    "retry": "Retry search",
+    "back": "Back",
+    "local_network": "LOCAL NETWORK",
+    "how_to_solve": "💡 How to solve it",
+    "pairing_errors": {
+      "comm_fail": {
+        "title": "Could not connect to \"{{name}}\"",
+        "detail": "Something went wrong with the communication with the Tuya server. This can happen occasionally.",
+        "hint": "Wait a few seconds and try again. If the error continues, restart the application."
+      },
+      "config_fail": {
+        "title": "Application not configured",
+        "detail": "SmartControl needs to be connected to your Tuya account to pair devices.",
+        "hint": "Contact the application administrator to configure access credentials."
+      },
+      "no_conn": {
+        "title": "No connection",
+        "detail": "Could not contact the server. Check if you have WiFi or if the application is correctly started.",
+        "hint": "Close and reopen the application and ensure you are connected to the same network as your devices."
+      },
+      "not_linked": {
+        "title": "\"{{name}}\" is not linked to your account",
+        "detail": "The device is on your local network but does not appear in your Tuya account. It may be associated with another account.",
+        "hint": "Open the official Tuya app and check if this device appears in your device list."
+      },
+      "tuya_reject": {
+        "title": "Tuya server rejected the request",
+        "detail": "The Tuya platform did not accept the operation. This may be temporary or indicate a permission issue.",
+        "hint": "Wait a few minutes and try again. If the problem persists, try logging out and back in to the Tuya app."
+      },
+      "timeout": {
+        "title": "\"{{name}}\" took too long to respond",
+        "detail": "The device is taking longer than expected. it may be busy or have a weak WiFi signal.",
+        "hint": "Move the device closer to the router and try again."
+      },
+      "generic": {
+        "title": "Could not pair \"{{name}}\"",
+        "detail": "An unexpected error occurred while trying to connect to this device.",
+        "hint": "Try again in a few seconds. If the error repeats multiple times, restart the device from its physical switch."
+      }
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "delete": "Delete"
+  }
+}

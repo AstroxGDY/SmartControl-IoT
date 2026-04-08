@@ -1,0 +1,159 @@
+{
+  "sidebar": {
+    "dashboard": "Tableau de Bord",
+    "devices": "Appareils",
+    "scanner": "Scanner",
+    "help": "Aide",
+    "logout": "Déconnexion",
+    "toggle_dark": "Activer le mode sombre",
+    "toggle_light": "Activar le mode clair"
+  },
+  "dashboard": {
+    "title": "Panneau de Contrôle",
+    "analyzing": "Analyse de l'Environnement",
+    "syncing": "Scan du réseau local et synchronisation des stats...",
+    "network_pulse": "Pouls du Réseau",
+    "network_pulse_desc": "Appareils rapportant la télémétrie locale UDP",
+    "ecosystem_health": "Santé de l'Écosystème",
+    "inventory": "Inventaire des Appareils",
+    "distribution_type": "Distribution par Type",
+    "units": "Unités",
+    "no_devices": "Vous n'avez pas encore d'appareils enregistrés.",
+    "quick_access": "Accès Rapide",
+    "active_devices": "Vos appareils actifs",
+    "manage_all": "Gérer Tout",
+    "empty_ecosystem": "Pas encore d'écosystème",
+    "empty_ecosystem_desc": "Scannez le réseau pour découvrir des appareils",
+    "recent_activity": "Ajoutés Récemment",
+    "via": "Via",
+    "local_udp": "Réseau Local UDP",
+    "no_activity": "Aucun enregistrement historique..."
+  },
+  "device_card": {
+    "status": {
+      "on": "Allumé",
+      "off": "Éteint",
+      "on_action": "Allumer",
+      "off_action": "Éteindre",
+      "online": "Connecté",
+      "offline": "Déconnecté"
+    },
+    "unlink": {
+      "title": "Délier l'appareil ?",
+      "confirm_text": "{{name}} sera supprimé de la base de données locale. Vous pourrez le réajouter via le scanner réseau.",
+      "warning": "Cette action supprime uniquement l'enregistrement local. L'appareil physique ne sera pas affecté.",
+      "cancel": "Annuler",
+      "confirm": "Oui, supprimer",
+      "deleting": "Suppression...",
+      "error": "Erreur lors de la suppression"
+    },
+    "details": "VOIR DÉTAILS"
+  },
+  "device_details": {
+    "connecting": "Connexion...",
+    "telemetry_udp": "Obtention de la télémétrie en temps réel par UDP",
+    "network_metadata": "Métadonnées Réseau",
+    "local_ip": "IP Locale",
+    "connection": "Connexion",
+    "local_key": "Local Key (Secret)",
+    "data_points": "Points de Données",
+    "mapping_cloud": "(Mappage Cloud)",
+    "raw": "(Brut)",
+    "no_dps": "Aucun point de données détecté. L'appareil est-il physiquement déconnecté ?",
+    "offline_msg": "L'appareil n'est pas disponible sur le réseau. Vérifiez s'il est branché et connecté au WiFi.",
+    "device_off": "Appareil Éteint",
+    "debug": "DEBUG: Télémétrie"
+  },
+  "scan": {
+    "title": "Scanner de Réseau",
+    "scanning": "Scan en cours...",
+    "start_scan": "Rechercher des Appareils",
+    "stop_scan": "Arrêter",
+    "complete": "Scan Terminé",
+    "found": "Appareils trouvés",
+    "pairing": "Couplage...",
+    "add_to_network": "Ajouter au réseau",
+    "port_conflict": {
+      "title": "Conflit de port détecté",
+      "desc": "Tuya a besoin des ports <span className=\"text-orange-600 dark:text-orange-400 font-mono font-semibold\">6666, 6667, 7000</span> pour scanner le réseau. Une autre application les utilise.",
+      "blocking_apps": "Applications bloquantes",
+      "pid_port": "PID: {{pid}} · Port{{suffix}}: {{ports}}",
+      "how_to_solve": "Comment voulez-vous résoudre le conflit ?",
+      "auto_close": {
+        "title": "Fermer les applications automatiquement",
+        "desc": "Notre programme fermera les applications répertoriées et réessayera."
+      },
+      "manual": {
+        "title": "Je m'en occupe moi-même",
+        "desc": "Fermez les applications manuellement et scannez de nouveau."
+      },
+      "confirm_kill": {
+        "title": "Confirmer la fermeture forcée ?",
+        "desc": "<strong>{{count}}</strong> processus ({{names}}) sera fermé. Assurez-vous d'enregistrer votre travail dans ces applications avant de continuer.",
+        "action": "Oui, fermer et scanner"
+      },
+      "killing": {
+        "title": "Fermeture des processus...",
+        "desc": "En attente que le système libère les ports."
+      },
+      "error_kill": "Erreur inconnue lors de la fermeture des processus.",
+      "error_failed_pids": "Impossible de fermer les processus avec le PID : {{pids}}. Essayez de les fermer manuellement."
+    },
+    "none_found": "Aucun appareil trouvé",
+    "scan_desc": "Recherchez de nouveaux appareils intelligents sur votre réseau WiFi ou Zigbee pour les coupler avec votre écosystème.",
+    "scan_advice": "Assurez-vous que vos appareils Tuya sont allumés et connectés à votre réseau local actuel.",
+    "analyzing_freq": "Analyse des fréquences détectées...",
+    "searching": "Recherche",
+    "scan_action": "Scanner",
+    "error_scan": "Un problème est survenu lors du scan.",
+    "error_pair_fallback": "Échec de récupération des clés dans le cloud Tuya.",
+    "error_invalid_id": "L'appareil n'a pas d'ID valide pour le couplage.",
+    "retry": "Réessayer la recherche",
+    "back": "Retour",
+    "local_network": "RÉSEAU LOCAL",
+    "how_to_solve": "💡 Comment résoudre",
+    "pairing_errors": {
+      "comm_fail": {
+        "title": "Impossible de se connecter à \"{{name}}\"",
+        "detail": "Quelque chose s'est mal passé avec la communication avec le serveur Tuya. Cela puede arriver occasionnellement.",
+        "hint": "Attendez quelques secondes et réessayez. Si l'erreur persiste, redémarrez l'application."
+      },
+      "config_fail": {
+        "title": "Application non configurée",
+        "detail": "SmartControl doit être connecté à votre compte Tuya pour coupler des appareils.",
+        "hint": "Contactez l'administrateur de l'application pour configurer les identifiants d'accès."
+      },
+      "no_conn": {
+        "title": "Pas de connexion",
+        "detail": "Impossible de contacter le serveur. Vérifiez si vous avez le WiFi o si l'application est correctement démarrée.",
+        "hint": "Fermez et rouvrez l'application et assurez-vous d'être connecté au même réseau que vos appareils."
+      },
+      "not_linked": {
+        "title": "\"{{name}}\" n'est pas lié à votre compte",
+        "detail": "L'appareil est sur votre réseau local mais n'apparaît pas dans votre compte Tuya. Il peut être associé à un autre compte.",
+        "hint": "Ouvrez l'application officielle Tuya et vérifiez si cet appareil apparaît dans votre liste d'appareils."
+      },
+      "tuya_reject": {
+        "title": "Le serveur Tuya a rejeté la demande",
+        "detail": "La plateforme Tuya n'a pas accepté l'opération. Cela peut être temporaire ou indiquer un problème de permission.",
+        "hint": "Attendez quelques minutes et réessayez. Si le problème persiste, essayez de vous déconnecter et de vous reconnecter à l'application Tuya."
+      },
+      "timeout": {
+        "title": "\"{{name}}\" a mis trop de temps à répondre",
+        "detail": "L'appareil met plus de temps que prévu. Il peut être occupé ou avoir un signal WiFi faible.",
+        "hint": "Rapprochez l'appareil du routeur et réessayez."
+      },
+      "generic": {
+        "title": "Impossible de coupler \"{{name}}\"",
+        "detail": "Une erreur inattendue s'est produite lors de la tentativa de connexion à cet appareil.",
+        "hint": "Réessayez dans quelques secondes. Si l'erreur se répète plusieurs fois, redémarrez l'appareil depuis son interrupeur physique."
+      }
+    }
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "save": "Enregistrer",
+    "delete": "Supprimer"
+  }
+}

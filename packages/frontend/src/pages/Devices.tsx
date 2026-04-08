@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DeviceCard } from '../components/DeviceCard';
 import type { IDevice } from '../../../shared/types';
 
 export default function Devices() {
+  const { t } = useTranslation();
   const [devices, setDevices] = useState<IDevice[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +23,7 @@ export default function Devices() {
     fetchDevices();
   }, [fetchDevices]);
 
-  if (loading) return <div className="p-8 font-bold text-slate-400">Cargando Smart Home...</div>;
+  if (loading) return <div className="p-8 font-bold text-slate-400 dark:text-slate-500 transition-colors">{t('common.loading')}</div>;
 
   return (
     <div className="p-8">

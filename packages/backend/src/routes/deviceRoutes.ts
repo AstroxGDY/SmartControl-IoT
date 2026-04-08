@@ -4,8 +4,11 @@ import { type IDeviceInfo } from '../../../shared/types.js';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import fs from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
 import os from 'node:os';
+import crypto from 'node:crypto';
 
 const execAsync = promisify(exec);
 
@@ -18,6 +21,20 @@ const TUYA_PORTS = [6666, 6667, 7000] as const;
 
 /** Tamaño máximo del buffer de stdout para subprocesos Python (10 MB). */
 const EXEC_MAX_BUFFER = 10 * 1024 * 1024;
+
+// ─────────────────────────────────────────────────────────────
+// CONFIGURACIÓN DINÁMICA (Seguridad)
+// ─────────────────────────────────────────────────────────────
+
+/** 
+ * Store global para credenciales que pueden venir de Electron (safeStorage)
+ * o de variables de entorno por defecto.
+ */
+let globalConfig = {
+  TUYA_API_KEY: process.env.TUYA_API_KEY || '',
+  TUYA_API_SECRET: process.env.TUYA_API_SECRET || '',
+  TUYA_API_REGION: process.env.TUYA_API_REGION || 'eu',
+};
 
 // ─────────────────────────────────────────────────────────────
 // TIPOS
@@ -44,6 +61,10 @@ interface GetDeviceParams {
  */
 const pythonEnv = (extra: Record<string, string> = {}): NodeJS.ProcessEnv => ({
   ...process.env,
+  // Sobrescribimos con la config dinámica si existe
+  TUYA_API_KEY: globalConfig.TUYA_API_KEY || process.env.TUYA_API_KEY,
+  TUYA_API_SECRET: globalConfig.TUYA_API_SECRET || process.env.TUYA_API_SECRET,
+  TUYA_API_REGION: globalConfig.TUYA_API_REGION || process.env.TUYA_API_REGION,
   PYTHONIOENCODING: 'utf-8',
   PYTHONUTF8: '1', // Python 3.7+ "UTF-8 mode": afecta stdin/stdout/stderr y open()
   ...extra,
@@ -515,5 +536,70 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
 
     console.log(`[IoT] Dispositivo [${deleted.name}] (${id}) eliminado de la BD.`);
     return { success: true, message: `Dispositivo "${deleted.name}" desvinculado correctamente.` };
+  });
+
+  // ── PATCH /devices/:id ───────────────────────────────────────
+  // Actualiza parcialmente un dispositivo (nombre, icono, etc.)
+  fastify.patch<{ Params: GetDeviceParams; Body: Partial<IDeviceInfo> }>('/:id', async (request, reply) => {
+    const { id } = request.params;
+    const { name, image } = request.body;
+
+    const updated = await Device.findByIdAndUpdate(
+      id,
+      { $set: { name, image } },
+      { new: true }
+    );
+
+    if (!updated) return reply.status(404).send({ error: 'Dispositivo no encontrado.' });
+
+    console.log(`[IoT] Dispositivo [${id}] actualizado: ${name} (${image})`);
+    return { success: true, device: updated };
+  });
+
+  // ── POST /devices/upload ─────────────────────────────────────
+  // Sube una imagen personalizada para un icono de dispositivo.
+  fastify.post('/upload', async (request, reply) => {
+    const data = await request.file();
+    if (!data) return reply.status(400).send({ error: 'No se recibió ningún archivo.' });
+
+    // Validaciones de seguridad
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+    if (!allowedMimeTypes.includes(data.mimetype)) {
+      return reply.status(415).send({ error: 'Tipo de archivo no permitido. Usa JPG, PNG, WebP o SVG.' });
+    }
+
+    // Generar nombre seguro (timestamp + random hex + extensión)
+    const ext = path.extname(data.filename) || `.${data.mimetype.split('/')[1]}`;
+    const safeName = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`;
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    const savePath = path.join(uploadDir, safeName);
+
+    try {
+      // Guardar archivo usando streams para eficiencia
+      await pipeline(data.file, createWriteStream(savePath));
+
+      // La URL resultante será relativa al servidor (ej: /uploads/nombre.png)
+      // O absoluta si incluimos el host, pero relativa es más flexible para Electron/CORS
+      const fileUrl = `/uploads/${safeName}`;
+
+      console.log(`[Upload] Archivo guardado: ${savePath} -> ${fileUrl}`);
+      return { success: true, url: fileUrl };
+    } catch (err) {
+      console.error('[Upload ERROR]', err);
+      return reply.status(500).send({ error: 'Fallo al guardar el archivo en el servidor.' });
+    }
+  });
+
+  // ── POST /devices/config ─────────────────────────────────────
+  // Actualiza la configuración dinámica (inyecta keys desde Electron)
+  fastify.post('/config', async (request, reply) => {
+    const { TUYA_API_KEY, TUYA_API_SECRET, TUYA_API_REGION } = request.body as any;
+    
+    if (TUYA_API_KEY) globalConfig.TUYA_API_KEY = TUYA_API_KEY;
+    if (TUYA_API_SECRET) globalConfig.TUYA_API_SECRET = TUYA_API_SECRET;
+    if (TUYA_API_REGION) globalConfig.TUYA_API_REGION = TUYA_API_REGION;
+
+    console.log(`[Config] Credenciales actualizadas dinámicamente (${globalConfig.TUYA_API_REGION})`);
+    return { success: true };
   });
 }

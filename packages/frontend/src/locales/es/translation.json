@@ -1,0 +1,175 @@
+{
+  "sidebar": {
+    "dashboard": "Panel de Control",
+    "devices": "Dispositivos",
+    "scanner": "Escáner",
+    "help": "Ayuda",
+    "logout": "Cerrar Sesión",
+    "toggle_dark": "Activar modo oscuro",
+    "toggle_light": "Activar modo claro"
+  },
+  "dashboard": {
+    "title": "Panel de Control",
+    "analyzing": "Analizando el Entorno",
+    "syncing": "Escaneando red local y sincronizando estadísticas...",
+    "network_pulse": "Pulso de Red",
+    "network_pulse_desc": "Dispositivos reportando telemetría local UDP",
+    "ecosystem_health": "Salud del Ecosistema",
+    "inventory": "Inventario de Dispositivos",
+    "distribution_type": "Distribución por Tipo",
+    "units": "Unidades",
+    "no_devices": "No tienes dispositivos registrados aún.",
+    "quick_access": "Acceso Rápido",
+    "active_devices": "Tus dispositivos activos",
+    "manage_all": "Gestionar Todos",
+    "empty_ecosystem": "Aún no hay ecosistema",
+    "empty_ecosystem_desc": "Escanea la red para descubrir dispositivos",
+    "recent_activity": "Añadidos Recientemente",
+    "via": "Vía",
+    "local_udp": "Red Local UDP",
+    "no_activity": "No hay registros históricos..."
+  },
+  "device_card": {
+    "status": {
+      "on": "Encendido",
+      "off": "Apagado",
+      "offline": "Desconectado"
+    },
+    "unlink": {
+      "title": "¿Desvincular dispositivo?",
+      "confirm_text": "Se eliminará {{name}} de la base de datos local. Podrás volver a añadirlo desde el escáner de red.",
+      "warning": "Esta acción solo borra el registro local. El dispositivo físico no se verá afectado.",
+      "cancel": "Cancelar",
+      "confirm": "Sí, eliminar",
+      "deleting": "Desvinculando...",
+      "error": "Error al eliminar"
+    },
+    "details": "VER DETALLES"
+  },
+  "device_details": {
+    "connecting": "Conectando...",
+    "telemetry_udp": "Obteniendo telemetría en tiempo real por UDP",
+    "network_metadata": "Metadatos de Red",
+    "local_ip": "IP Local",
+    "connection": "Conexión",
+    "local_key": "Local Key (Secreta)",
+    "data_points": "Data Points",
+    "mapping_cloud": "(Mapeo Cloud)",
+    "raw": "(Crudos)",
+    "no_dps": "No se detectaron Data Points. ¿El dispositivo está desconectado físicamente?",
+    "offline_msg": "El dispositivo no está disponible en la red. Comprueba que esté enchufado y conectado al WiFi.",
+    "device_off": "Dispositivo Apagado",
+    "debug": "DEBUG: Telemetría",
+    "edit": "Editar Dispositivo",
+    "save_success": "Configuración guardada correctamente con cifrado nativo.",
+    "save_error": "Error al guardar la configuración.",
+    "security_notice": "Tus claves se almacenan cifradas usando la tecnología de seguridad de tu Sistema Operativo.",
+    "mode_title": "Modo de Configuración",
+    "mode_simple": "Modo Simple (Recomendado)",
+    "mode_simple_desc": "Usa las claves de sistema proporcionadas por el desarrollador. Ideal para usuarios domésticos.",
+    "mode_advanced": "Modo Avanzado",
+    "mode_advanced_desc": "Usa tus propias claves de Tuya IoT Platform. Requiere cuenta de desarrollador.",
+    "using_defaults": "Actualmente usando Claves del Sistema",
+    "switch_advanced": "Configurar mis propias claves",
+    "switch_simple": "Volver al Modo Simple",
+    "terms_title": "Condiciones de Uso (Modo Simple)",
+    "terms_text": "Al usar el Modo Simple, aceptas que las credenciales del desarrollador se utilicen para la comunicación con Tuya Cloud. No recopilamos tus claves privadas, pero el servicio depende de la vigencia de estas credenciales del sistema.",
+    "accept_terms": "Acepto las condiciones y quiero usar el Modo Simple",
+    "save_changes": "Guardar Cambios",
+    "change_icon": "Cambiar Icono",
+    "upload_error": "Error al subir imagen. Usa JPG, PNG o SVG de menos de 2MB.",
+    "uploading": "Subiendo..."
+  },
+  "scan": {
+    "title": "Escáner de Red",
+    "scanning": "Escaneando...",
+    "start_scan": "Buscar Dispositivos",
+    "stop_scan": "Detener",
+    "complete": "Escaneado Completo",
+    "found": "Dispositivos encontrados",
+    "pairing": "Vinculando...",
+    "add_to_network": "Añadir a red",
+    "port_conflict": {
+      "title": "Conflicto de puerto detectado",
+      "desc": "Tuya necesita los puertos <span className=\"text-orange-600 dark:text-orange-400 font-mono font-semibold\">6666, 6667, 7000</span> para escanear la red. Otra aplicación los está ocupando.",
+      "blocking_apps": "Aplicaciones bloqueantes",
+      "pid_port": "PID: {{pid}} · Puerto{{suffix}}: {{ports}}",
+      "how_to_solve": "¿Cómo quieres resolver el conflicto?",
+      "auto_close": {
+        "title": "Cerrar apps automáticamente",
+        "desc": "Nuestro programa cerrará las apps listadas y reintentará."
+      },
+      "manual": {
+        "title": "Lo haré yo mismo",
+        "desc": "Cierra las apps manualmente y vuelve a escanear."
+      },
+      "confirm_kill": {
+        "title": "¿Confirmas el cierre forzado?",
+        "desc": "Se cerrarán <strong>{{count}}</strong> proceso{{suffix}} ({{names}}). Asegúrate de guardar tu trabajo en esas aplicaciones antes de continuar.",
+        "action": "Sí, cerrar y escanear"
+      },
+      "killing": {
+        "title": "Cerrando procesos...",
+        "desc": "Esperando a que el sistema libere los puertos."
+      },
+      "error_kill": "Error desconocido al cerrar procesos.",
+      "error_failed_pids": "No se pudo cerrar los procesos con PID: {{pids}}. Intenta cerrarlos manualmente."
+    },
+    "none_found": "No se encontraron dispositivos",
+    "scan_desc": "Busca nuevos dispositivos inteligentes en tu red WiFi o Zigbee para emparejarlos con tu ecosistema.",
+    "scan_advice": "Asegúrate de que tus dispositivos Tuya estén encendidos y conectados a tu red local actual.",
+    "analyzing_freq": "Analizando frecuencias detectadas...",
+    "searching": "Buscando",
+    "scan_action": "Escanear",
+    "error_scan": "Hubo un problema al escanear.",
+    "error_pair_fallback": "Fallo recuperando claves en la nube de Tuya.",
+    "error_invalid_id": "El dispositivo no tiene ID válido para emparejarse.",
+    "retry": "Reintentar búsqueda",
+    "back": "Volver",
+    "local_network": "RED LOCAL",
+    "how_to_solve": "💡 Cómo resolverlo",
+    "pairing_errors": {
+      "comm_fail": {
+        "title": "No pudimos conectar con \"{{name}}\"",
+        "detail": "Algo salió mal con la comunicación con el servidor de Tuya. Esto puede ocurrir de forma puntual.",
+        "hint": "Espera unos segundos y vuelve a intentarlo. Si el error continúa, reinicia la aplicación."
+      },
+      "config_fail": {
+        "title": "La aplicación no está configurada",
+        "detail": "SmartControl necesita estar conectado a tu cuenta de Tuya para poder vincular dispositivos.",
+        "hint": "Contacta con el administrador de la aplicación para que configure las credenciales de acceso."
+      },
+      "no_conn": {
+        "title": "Sin conexión",
+        "detail": "No se ha podido contactar con el servidor. Comprueba que tienes WiFi o que la aplicación está bien iniciada.",
+        "hint": "Cierra y vuelve a abrir la aplicación y asegúrate de estar conectado a la misma red que tus dispositivos."
+      },
+      "not_linked": {
+        "title": "\"{{name}}\" no está vinculado a tu cuenta",
+        "detail": "El dispositivo está en tu red local pero no aparece en tu cuenta de Tuya. Es posible que esté asociado a otra cuenta.",
+        "hint": "Abre la app oficial de Tuya y comprueba que este dispositivo aparece en tu lista de dispositivos."
+      },
+      "tuya_reject": {
+        "title": "El servidor de Tuya rechazó la solicitud",
+        "detail": "La plataforma de Tuya no ha aceptado la operación. Esto puede ser temporal o indicar un problema de permisos.",
+        "hint": "Espera unos minutos y vuelve a intentarlo. Si el problema persiste, prueba a cerrar sesión y volver a entrar en la app de Tuya."
+      },
+      "timeout": {
+        "title": "\"{{name}}\" tardó demasiado en responder",
+        "detail": "El dispositivo está tardando más de lo esperado. Puede estar ocupado o tener la señal WiFi débil.",
+        "hint": "Acerca el dispositivo al router y vuelve a intentarlo."
+      },
+      "generic": {
+        "title": "No se pudo vincular \"{{name}}\"",
+        "detail": "Ha ocurrido un error inesperado al intentar conectar con este dispositivo.",
+        "hint": "Vuelve a intentarlo en unos segundos. Si el error se repite varias veces, reinicia el dispositivo desde su interruptor físico."
+      }
+    }
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "save": "Guardar",
+    "delete": "Eliminar"
+  }
+}

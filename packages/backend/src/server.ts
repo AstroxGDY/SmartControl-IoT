@@ -4,6 +4,8 @@ dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import mongoose from 'mongoose';
+import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
 import devicesRoutes from './routes/deviceRoutes.js';
 
 const server = Fastify({ logger: true });
@@ -23,13 +25,31 @@ const start = async () => {
 
     // 3. Configuración del Server
     await server.register(cors, {
-      origin: true,  // refleja el Origin de la request (válido para Electron y localhost)
+      origin: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
       exposedHeaders: ['Content-Length'],
       credentials: false,
-      preflight: true,   // responde automáticamente a OPTIONS con 204
+      preflight: true,
     });
+
+    // 4. Plugins para archivos
+    await server.register(multipart, {
+      limits: {
+        fieldNameSize: 100, // Max field name size in bytes
+        fieldSize: 100,     // Max field value size in bytes
+        fields: 10,         // Max number of non-file fields
+        fileSize: 2 * 1024 * 1024, // 2MB limit
+        files: 1,           // Max number of file fields
+        headerPairs: 2000   // Max number of header key=>value pairs
+      }
+    });
+
+    await server.register(fastifyStatic, {
+      root: path.join(process.cwd(), 'uploads'),
+      prefix: '/uploads/', // URL prefix: http://localhost:3000/uploads/file.png
+    });
+    console.log(`📂 Carpeta de subidas configurada en: ${path.join(process.cwd(), 'uploads')}`);
 
     await server.register(devicesRoutes, { prefix: '/devices' });
 
