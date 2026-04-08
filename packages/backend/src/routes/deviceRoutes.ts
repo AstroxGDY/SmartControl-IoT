@@ -556,6 +556,41 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
     return { success: true, device: updated };
   });
 
+  // ── GET /devices/:id/logs ────────────────────────────────────
+  // Obtiene el historial de eventos del dispositivo desde Tuya Cloud
+  fastify.get<{ Params: GetDeviceParams }>('/:id/logs', async (request, reply) => {
+    const { id } = request.params;
+    const device = await Device.findById(id).lean();
+
+    if (!device) return reply.status(404).send({ error: 'Dispositivo no encontrado.' });
+
+    const tuyaId = device.attributes?.tuyaId;
+    if (!tuyaId) return reply.status(400).send({ error: 'El dispositivo no tiene un Tuya ID vinculado.' });
+
+    console.log(`[IoT] Obteniendo historial para ${device.name} (${tuyaId})...`);
+
+    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'get_logs.py');
+    try {
+      const { stdout } = await execAsync(
+        `python "${scriptPath}"`,
+        { 
+          env: pythonEnv({ TUYA_DEVICE_ID: tuyaId }),
+          maxBuffer: EXEC_MAX_BUFFER 
+        }
+      );
+
+      const result = extractJson(stdout) as any;
+      if (result.error) return reply.status(500).send(result);
+
+      // Tuya devuelve { success: true, result: { logs: [...] } } o similar
+      return result;
+
+    } catch (e: any) {
+      console.error('[IoT ERROR] Fallo obteniendo logs:', e.message);
+      return reply.status(500).send({ error: 'Error al obtener el historial de la nube.' });
+    }
+  });
+
   // ── POST /devices/upload ─────────────────────────────────────
   // Sube una imagen personalizada para un icono de dispositivo.
   fastify.post('/upload', async (request, reply) => {

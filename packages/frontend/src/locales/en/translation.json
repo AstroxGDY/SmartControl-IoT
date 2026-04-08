@@ -59,7 +59,18 @@
     "no_dps": "No Data Points detected. Is the device physically disconnected?",
     "offline_msg": "The device is not available on the network. Check if it is plugged in and connected to WiFi.",
     "device_off": "Device Off",
-    "debug": "DEBUG: Telemetry"
+    "debug": "DEBUG: Telemetry",
+    "edit": "Edit Device",
+    "save_changes": "Save Changes",
+    "change_icon": "Change Icon",
+    "upload_error": "Upload error. Use JPG, PNG or SVG under 2MB.",
+    "tab_controls": "Controls",
+    "tab_history": "History",
+    "history_loading": "Loading history...",
+    "history_empty": "No recent records",
+    "history_error": "Error loading history",
+    "recent": "Recent",
+    "events": "events"
   },
   "scan": {
     "title": "Network Scanner",

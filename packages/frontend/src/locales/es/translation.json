@@ -78,7 +78,14 @@
     "save_changes": "Guardar Cambios",
     "change_icon": "Cambiar Icono",
     "upload_error": "Error al subir imagen. Usa JPG, PNG o SVG de menos de 2MB.",
-    "uploading": "Subiendo..."
+    "uploading": "Subiendo...",
+    "tab_controls": "Controles",
+    "tab_history": "Historial",
+    "history_loading": "Cargando historial...",
+    "history_empty": "No hay registros recientes",
+    "history_error": "Error al cargar historial",
+    "recent": "Recientes",
+    "events": "eventos"
   },
   "scan": {
     "title": "Escáner de Red",
