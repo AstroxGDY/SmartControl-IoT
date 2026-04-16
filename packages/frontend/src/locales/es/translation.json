@@ -178,5 +178,32 @@
     "error": "Error",
     "save": "Guardar",
     "delete": "Eliminar"
+  },
+  "bluetooth": {
+    "title": "Control Bluetooth",
+    "desc": "Gestiona y controla tus dispositivos de audio emparejados.",
+    "scan": {
+      "title": "Dispositivos Activos",
+      "action": "Escanear Bluetooth",
+      "searching": "Buscando periféricos...",
+      "none_found": "No se encontraron dispositivos de audio activos.",
+      "advice": "Asegúrate de que el dispositivo esté emparejado con Windows y encendido.",
+      "paired_status": "Previamente emparejado",
+      "back": "Volver"
+    },
+    "controls": {
+      "title": "Centro Multimedia",
+      "now_playing": "Reproduciendo ahora",
+      "volume": "Volumen Absolute",
+      "play_pause": "Reproducir / Pausar",
+      "next": "Siguiente pista",
+      "prev": "Pista anterior",
+      "select_device": "Selecciona un dispositivo para gestionar su volumen",
+      "hardware_error": "Error de Hardware",
+      "exception_title": "Fallo de Control AVRCP",
+      "no_session": "No hay ninguna sesión multimedia activa detectada en el sistema.",
+      "title_label": "Título",
+      "artist_label": "Artista"
+    }
   }
 }

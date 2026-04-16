@@ -1,5 +1,5 @@
 export type DeviceStatus = 'online' | 'offline' | 'error';
-// ConnectionType genérico (WiFi, Zigbee, etc)
+// ConnectionType genérico (WiFi, Zigbee, Bluetooth, etc)
 export type ConnectionType = string; 
 // DeviceType genérico (dj, cz, smart-bulb, etc)
 export type DeviceType = string;     

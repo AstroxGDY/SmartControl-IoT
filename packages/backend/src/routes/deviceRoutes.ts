@@ -637,4 +637,68 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
     console.log(`[Config] Credenciales actualizadas dinámicamente (${globalConfig.TUYA_API_REGION})`);
     return { success: true };
   });
+
+  // ── GET /devices/bluetooth/scan ──────────────────────────────
+  fastify.get('/bluetooth/scan', async (_request, reply) => {
+    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'bluetooth_manager.py');
+    try {
+      const { stdout } = await execAsync(`python "${scriptPath}" scan`, { env: pythonEnv() });
+      return JSON.parse(stdout);
+    } catch (e: any) {
+      return reply.status(500).send({ error: e.message });
+    }
+  });
+
+  // ── GET /devices/bluetooth/state ──────────────────────────────
+  fastify.get('/bluetooth/state', async (_request, reply) => {
+    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'bluetooth_manager.py');
+    try {
+      const { stdout } = await execAsync(`python "${scriptPath}" state`, { env: pythonEnv() });
+      return JSON.parse(stdout);
+    } catch (e: any) {
+      return reply.status(500).send({ error: e.message });
+    }
+  });
+
+  // ── POST /devices/bluetooth/command ──────────────────────────
+  fastify.post<{ Body: { command: string; value?: any; deviceName?: string; deviceId?: string } }>('/bluetooth/command', async (request, reply) => {
+    const { command, value, deviceName, deviceId } = request.body;
+    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'bluetooth_manager.py');
+    try {
+      const { stdout } = await execAsync(
+        `python "${scriptPath}" command ${command} ${value ?? ''}`, 
+        { env: pythonEnv({ BT_DEVICE_NAME: deviceName || '', BT_DEVICE_ID: deviceId || '' }) }
+      );
+      const res = JSON.parse(stdout);
+      if (res.error) {
+        // Capturamos el ControlHardwareError del backend python
+        if (res.type === 'ControlHardwareError') {
+            return reply.status(400).send(res);
+        }
+        return reply.status(500).send(res);
+      }
+      return res;
+    } catch (e: any) {
+      return reply.status(500).send({ error: e.message });
+    }
+  });
+
+  // ── POST /devices/bluetooth/pair ──────────────────────────────
+  fastify.post<{ Body: { name: string; id: string } }>('/bluetooth/pair', async (request, _reply) => {
+    const { name, id } = request.body;
+    const existing = await Device.findOne({ 'attributes.bluetoothId': id });
+    if (existing) {
+        return existing;
+    }
+    const saved = await new Device({
+      name,
+      type: 'audio-device',
+      connectionType: 'Bluetooth',
+      status: 'online',
+      attributes: {
+        bluetoothId: id,
+      }
+    }).save();
+    return saved;
+  });
 }
