@@ -163,5 +163,30 @@
     "error": "Error",
     "save": "Save",
     "delete": "Delete"
+  },
+  "bluetooth": {
+    "scan": {
+      "title": "Bluetooth Manager",
+      "action": "Scan Bluetooth",
+      "searching": "Searching peripherals...",
+      "none_found": "No active audio devices found.",
+      "advice": "Ensure the device is paired with Windows and powered on.",
+      "paired_status": "Locally Paired",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "connecting": "Connecting...",
+      "back": "Back"
+    },
+    "controls": {
+      "title": "Audio Control Panel",
+      "volume": "Volume",
+      "now_playing": "Now Playing",
+      "select_device": "Select a device to manage its volume",
+      "hardware_error": "Hardware Error",
+      "exception_title": "AVRCP Control Failure",
+      "no_session": "No active multimedia session detected in the system.",
+      "title_label": "Title",
+      "artist_label": "Artist"
+    }
   }
 }

@@ -188,7 +188,10 @@
       "searching": "Buscando periféricos...",
       "none_found": "No se encontraron dispositivos de audio activos.",
       "advice": "Asegúrate de que el dispositivo esté emparejado con Windows y encendido.",
-      "paired_status": "Previamente emparejado",
+      "paired_status": "Emparejado localmente",
+      "connected": "Conectado",
+      "disconnected": "Desconectado",
+      "connecting": "Conectando...",
       "back": "Volver"
     },
     "controls": {

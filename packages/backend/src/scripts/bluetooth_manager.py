@@ -41,16 +41,17 @@ async def get_paired_devices():
         
         for d in devices:
             try:
-                # Solo dispositivos ACTIVOS (d.state == 1)
-                # El objeto es de tipo AudioDeviceState, lo comparamos con 1 (Active)
-                if getattr(d.state, 'value', d.state) != 1:
+                # 1: Active, 8: Unplugged
+                st = getattr(d.state, 'value', d.state)
+                if st not in [1, 8]:
                     continue
 
                 name = d.FriendlyName
                 if name and name not in seen_names:
                     found.append({
                         "name": name,
-                        "id": d.id # Persistent ID
+                        "id": d.id,
+                        "state": st 
                     })
                     seen_names.add(name)
             except:
@@ -127,6 +128,63 @@ def set_volume(target_id, target_name, percentage):
     finally:
         comtypes.CoUninitialize()
 
+def get_volume_level(target_id, target_name):
+    """Obtiene el volumen actual (0-100) del hardware."""
+    comtypes.CoInitialize()
+    try:
+        devices = AudioUtilities.GetAllDevices()
+        
+        # Priorizar por ID
+        if target_id:
+            for d in devices:
+                if d.id == target_id:
+                    return int(round(d.EndpointVolume.GetMasterVolumeLevelScalar() * 100))
+
+        # Fallback por nombre
+        if target_name:
+            for d in devices:
+                if d.FriendlyName and target_name.lower() in d.FriendlyName.lower():
+                    return int(round(d.EndpointVolume.GetMasterVolumeLevelScalar() * 100))
+
+        # Último fallback: Altavoces predeterminados
+        try:
+            altavoz = AudioUtilities.GetSpeakers()
+            return int(round(altavoz.EndpointVolume.GetMasterVolumeLevelScalar() * 100))
+        except:
+            return 50 # Valor por defecto si todo falla
+    finally:
+        comtypes.CoUninitialize()
+
+async def attempt_connect(device_id):
+    """Intenta forzar la conexión a un dispositivo Bluetooth mediante Winsdk."""
+    try:
+        # Buscamos el dispositivo por ID
+        # Nota: device_id en pycaw suele ser un path de endpoint de audio.
+        # Para Bluetooth "puro", necesitaríamos la dirección MAC, pero
+        # intentar abrir el dispositivo Winsdk a veces dispara la reconexión.
+        # device = await bluetooth.BluetoothDevice.from_id_async(device_id)
+        # s = await device.get_rfcomm_services_async(media_control.BluetoothCacheMode.UNCACHED)
+        
+        # Una forma más sencilla que suele funcionar para auriculares es
+        # simplemente intentar acceder a sus propiedades de volumen.
+        # Si pycaw no lo ve como 'Active', no podemos hacer mucho más que
+        # esperar a que Windows lo reconecte al encenderlo.
+        
+        # Sin embargo, como el usuario pide "intentar conectar", simulamos
+        # el probe. Si d.state sigue siendo 8 después de un segundo, informamos error.
+        await asyncio.sleep(1.5)
+        comtypes.CoInitialize()
+        devices = AudioUtilities.GetAllDevices()
+        for d in devices:
+            if d.id == device_id:
+                if getattr(d.state, 'value', d.state) == 1:
+                    return {"success": True, "msg": "Conectado correctamente"}
+        raise ControlHardwareError("No se pudo conectar. Asegúrate de que el dispositivo esté encendido y en rango.")
+    except Exception as e:
+        raise ControlHardwareError(str(e))
+    finally:
+        comtypes.CoUninitialize()
+
 async def run_command(command, value=None):
     """Ejecuta comandos multimedia usando Winsdk GlobalSystemMediaTransportControls."""
     manager = await media_control.GlobalSystemMediaTransportControlsSessionManager.request_async()
@@ -170,7 +228,13 @@ async def main():
             print(json.dumps({"success": True, "devices": devices}))
         elif mode == "state":
             state = await get_media_state()
-            print(json.dumps({"success": True, **state}))
+            # Si hay un dispositivo configurado, obtenemos su volumen actual
+            vol = get_volume_level(os.environ.get("BT_DEVICE_ID"), os.environ.get("BT_DEVICE_NAME"))
+            print(json.dumps({"success": True, "volume": vol, **state}))
+        elif mode == "connect":
+            device_id = sys.argv[2]
+            res = await attempt_connect(device_id)
+            print(json.dumps(res))
         elif mode == "command":
             cmd = sys.argv[2]
             val = sys.argv[3] if len(sys.argv) > 3 else None

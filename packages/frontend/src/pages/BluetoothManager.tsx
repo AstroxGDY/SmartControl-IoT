@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 interface BTDevice {
   name: string;
   id: string;
+  state: number; // 1: Active, 8: Unplugged
 }
 
 export default function BluetoothManager() {
@@ -31,24 +32,36 @@ export default function BluetoothManager() {
 
   const hasMounted = useRef(false);
 
+  const fetchState = async (deviceId?: string, deviceName?: string) => {
+    try {
+      const targetId = deviceId || selectedDevice?.id;
+      const targetName = deviceName || selectedDevice?.name;
+      
+      const query = new URLSearchParams();
+      if (targetId) query.append('deviceId', targetId);
+      if (targetName) query.append('deviceName', targetName);
+
+      const response = await fetch(`http://localhost:3000/devices/bluetooth/state?${query.toString()}`);
+      const data = await response.json();
+      if (data.success) {
+        setMediaState({
+          status: data.status,
+          title: data.title,
+          artist: data.artist
+        });
+        
+        // Sincronizamos volumen desde el hardware
+        if (typeof data.volume === 'number') {
+          setVolume(data.volume);
+        }
+      }
+    } catch (e) {
+      console.warn("Error polling state", e);
+    }
+  };
+
   // Poller de estado cada 3 segundos
   useEffect(() => {
-    const fetchState = async () => {
-      try {
-        const response = await fetch('http://localhost:3000/devices/bluetooth/state');
-        const data = await response.json();
-        if (data.success) {
-          setMediaState({
-            status: data.status,
-            title: data.title,
-            artist: data.artist
-          });
-        }
-      } catch (e) {
-        console.warn("Error polling state", e);
-      }
-    };
-
     const interval = setInterval(fetchState, 3000);
     fetchState(); // Carga inicial
 
@@ -85,14 +98,14 @@ export default function BluetoothManager() {
 
   const sortedDevices = useMemo(() => {
     return [...devices].sort((a, b) => {
-      // 1. Prioridad: Dispositivo seleccionado
-      if (selectedDevice?.id === a.id) return -1;
-      if (selectedDevice?.id === b.id) return 1;
+      // 1. Prioridad: Dispositivos CONECTADOS (state 1)
+      if (a.state === 1 && b.state !== 1) return -1;
+      if (b.state === 1 && a.state !== 1) return 1;
       
       // 2. Alfabético por nombre
       return a.name.localeCompare(b.name);
     });
-  }, [devices, selectedDevice]);
+  }, [devices]);
 
   const sendCommand = async (command: string, value?: any) => {
     setIsSyncing(true);
@@ -115,6 +128,11 @@ export default function BluetoothManager() {
       }
       
       if (command === 'volume') setVolume(value);
+      
+      // Actualizamos estado inmediatamente para mayor feedback visual
+      if (['play_pause', 'next', 'prev'].includes(command)) {
+        await fetchState();
+      }
 
     } catch (err: any) {
       setError({
@@ -127,9 +145,38 @@ export default function BluetoothManager() {
   };
 
   const selectDevice = async (device: BTDevice) => {
+    if (device.state === 8) {
+      // Si está desconectado, intentamos conectar
+      setIsSyncing(true);
+      setError(null);
+      try {
+        const response = await fetch('http://localhost:3000/devices/bluetooth/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId: device.id })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Fallo de conexión');
+        
+        // Si tiene éxito, refrescamos la lista
+        await scanDevices();
+      } catch (err: any) {
+        setError({
+          title: t('bluetooth.controls.hardware_error'),
+          detail: err.message
+        });
+        return;
+      } finally {
+        setIsSyncing(false);
+      }
+    }
+
     setSelectedDevice(device);
     // Persistimos en la BD
     try {
+      // Sincronizamos volumen inicial inmediatamente
+      await fetchState(device.id, device.name);
+      
       await fetch('http://localhost:3000/devices/bluetooth/pair', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -200,26 +247,48 @@ export default function BluetoothManager() {
                   <button
                     key={device.id}
                     onClick={() => selectDevice(device)}
-                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left group ${
-                      selectedDevice?.id === device.id
-                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50'
-                      : 'bg-white dark:bg-slate-900 border-gray-50 dark:border-slate-800 hover:border-blue-100 dark:hover:border-blue-900/30 shadow-sm'
+                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left group overflow-hidden relative ${
+                      device.state === 1 
+                      ? (selectedDevice?.id === device.id 
+                          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50' 
+                          : 'bg-white dark:bg-slate-900 border-gray-50 dark:border-slate-800 hover:border-blue-100 dark:hover:border-blue-900/30')
+                      : 'bg-gray-50/50 dark:bg-slate-900/30 border-transparent dark:border-transparent opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0'
                     }`}
                   >
+                    {/* Indicador de estado lateral */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                      device.state === 1 ? 'bg-blue-500' : 'bg-slate-300'
+                    }`} />
+
                     <div className={`p-3 rounded-xl transition-colors ${
-                      selectedDevice?.id === device.id
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 dark:bg-slate-800 text-slate-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 group-hover:text-blue-500'
+                      device.state === 1
+                      ? (selectedDevice?.id === device.id ? 'bg-blue-500 text-white' : 'bg-blue-50 dark:bg-blue-950/50 text-blue-500')
+                      : 'bg-gray-100 dark:bg-slate-800 text-slate-400'
                     }`}>
                       <Smartphone size={20} />
                     </div>
+
                     <div className="flex-1 truncate">
-                      <p className="font-bold text-slate-700 dark:text-slate-200 truncate">{device.name}</p>
-                      <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mt-0.5">
-                        {t('bluetooth.scan.paired_status')}
+                      <p className={`font-bold truncate ${
+                        device.state === 1 ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'
+                      }`}>
+                        {device.name}
                       </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`text-[9px] uppercase tracking-widest font-black px-1.5 py-0.5 rounded ${
+                          device.state === 1 
+                          ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400' 
+                          : 'bg-gray-200 dark:bg-slate-800 text-slate-500'
+                        }`}>
+                          {device.state === 1 ? t('bluetooth.scan.connected') : t('bluetooth.scan.disconnected')}
+                        </span>
+                      </div>
                     </div>
-                    {selectedDevice?.id === device.id && (
+
+                    {isSyncing && !selectedDevice && device.state === 8 && (
+                      <Loader2 size={16} className="animate-spin text-blue-500" />
+                    )}
+                    {selectedDevice?.id === device.id && device.state === 1 && (
                       <CheckCircle2 size={20} className="text-blue-500" />
                     )}
                   </button>

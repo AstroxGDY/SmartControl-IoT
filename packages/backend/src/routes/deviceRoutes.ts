@@ -650,11 +650,28 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
   });
 
   // ── GET /devices/bluetooth/state ──────────────────────────────
-  fastify.get('/bluetooth/state', async (_request, reply) => {
+  fastify.get<{ Querystring: { deviceId?: string; deviceName?: string } }>('/bluetooth/state', async (request, reply) => {
+    const { deviceId, deviceName } = request.query;
     const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'bluetooth_manager.py');
     try {
-      const { stdout } = await execAsync(`python "${scriptPath}" state`, { env: pythonEnv() });
+      const { stdout } = await execAsync(`python "${scriptPath}" state`, { 
+        env: pythonEnv({ BT_DEVICE_ID: deviceId || '', BT_DEVICE_NAME: deviceName || '' }) 
+      });
       return JSON.parse(stdout);
+    } catch (e: any) {
+      return reply.status(500).send({ error: e.message });
+    }
+  });
+
+  // ── POST /devices/bluetooth/connect ──────────────────────────
+  fastify.post<{ Body: { deviceId: string } }>('/bluetooth/connect', async (request, reply) => {
+    const { deviceId } = request.body;
+    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'bluetooth_manager.py');
+    try {
+      const { stdout } = await execAsync(`python "${scriptPath}" connect ${deviceId}`, { env: pythonEnv() });
+      const res = JSON.parse(stdout);
+      if (res.error) return reply.status(400).send(res);
+      return res;
     } catch (e: any) {
       return reply.status(500).send({ error: e.message });
     }
