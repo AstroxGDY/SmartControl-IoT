@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import devicesRoutes from './routes/deviceRoutes.js';
+import statsRoutes from './routes/statsRoutes.js';
 
 const server = Fastify({ logger: true });
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,10 @@ const start = async () => {
       .catch((err) => {
         console.warn('⚠️ No se ha podido conectar a MongoDB. La API arrancará igual, pero sin DB.');
       });
+
+    // Iniciar tareas en segundo plano
+    const { startScheduler } = await import('./utils/scheduler.js');
+    startScheduler();
 
     // 3. Configuración del Server
     await server.register(cors, {
@@ -52,6 +57,7 @@ const start = async () => {
     console.log(`📂 Carpeta de subidas configurada en: ${path.join(process.cwd(), 'uploads')}`);
 
     await server.register(devicesRoutes, { prefix: '/devices' });
+    await server.register(statsRoutes, { prefix: '/stats' });
 
     // Escuchamos en 0.0.0.0 para evitar problemas de resolución de localhost (IPv4 vs IPv6) en fetch
     await server.listen({ port: Number(PORT), host: '0.0.0.0' });

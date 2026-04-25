@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { Device } from '../models/Device.js';
+import { DeviceStats } from '../models/DeviceStats.js';
 import { type IDeviceInfo } from '../../../shared/types.js';
-import { exec } from 'node:child_process';
+import { exec, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import fs from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
@@ -67,6 +68,7 @@ const pythonEnv = (extra: Record<string, string> = {}): NodeJS.ProcessEnv => ({
   TUYA_API_REGION: globalConfig.TUYA_API_REGION || process.env.TUYA_API_REGION,
   PYTHONIOENCODING: 'utf-8',
   PYTHONUTF8: '1', // Python 3.7+ "UTF-8 mode": afecta stdin/stdout/stderr y open()
+  PYTHONUNBUFFERED: '1',
   ...extra,
 });
 
@@ -701,15 +703,15 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
   });
 
   // ── POST /devices/bluetooth/pair ──────────────────────────────
-  fastify.post<{ Body: { name: string; id: string } }>('/bluetooth/pair', async (request, _reply) => {
-    const { name, id } = request.body;
+  fastify.post<{ Body: { name: string; id: string; type?: string } }>('/bluetooth/pair', async (request, _reply) => {
+    const { name, id, type } = request.body;
     const existing = await Device.findOne({ 'attributes.bluetoothId': id });
     if (existing) {
         return existing;
     }
     const saved = await new Device({
       name,
-      type: 'audio-device',
+      type: type || 'audio-device',
       connectionType: 'Bluetooth',
       status: 'online',
       attributes: {
@@ -717,5 +719,116 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
       }
     }).save();
     return saved;
+  });
+
+  // ── GET /devices/analysis/mice ──────────────────────────────
+  fastify.get('/analysis/mice', async (_request, reply) => {
+    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'mouse_sniffer.py');
+    try {
+      const { stdout } = await execAsync(`python "${scriptPath}" list`, { env: pythonEnv() });
+      return JSON.parse(stdout);
+    } catch (e: any) {
+      return reply.status(500).send({ error: e.message });
+    }
+  });
+
+  // ── GET /devices/analysis/battery/:id ────────────────────────
+  fastify.get<{ Params: { id: string } }>('/analysis/battery/:id', async (request, reply) => {
+    const { id } = request.params;
+    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'mouse_sniffer.py');
+    try {
+      const { stdout } = await execAsync(`python "${scriptPath}" battery "${id}"`, { env: pythonEnv() });
+      return JSON.parse(stdout);
+    } catch (e: any) {
+      return reply.status(500).send({ error: e.message });
+    }
+  });
+
+  // ── GET /devices/analysis/stream/:handle ──────────────────────
+  fastify.get<{ Params: { handle: string }, Querystring: { id?: string } }>('/analysis/stream/:handle', (request, reply) => {
+    const { handle } = request.params;
+    const { id } = request.query;
+    
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    
+    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'mouse_sniffer.py');
+    const pythonProcess = spawn('python', [scriptPath, 'sniff', handle], { env: pythonEnv() });
+    
+    let sessionClicks = 0;
+    let sessionDistance = 0;
+    let lastSaveTime = Date.now();
+
+    const saveStatsToDb = async () => {
+      if (!id || (sessionClicks === 0 && sessionDistance === 0)) return;
+      try {
+        const device = await Device.findOne({ 'attributes.bluetoothId': id });
+        if (device) {
+          const stats = await DeviceStats.findOne({ deviceId: device._id }).sort({ timestamp: -1 });
+          if (stats && (Date.now() - stats.timestamp.getTime() < 3600000)) {
+            stats.clicks = (stats.clicks || 0) + sessionClicks;
+            stats.distance = (stats.distance || 0) + sessionDistance;
+            await stats.save();
+          } else {
+            await new DeviceStats({
+              deviceId: device._id,
+              status: 'online',
+              clicks: sessionClicks,
+              distance: sessionDistance
+            }).save();
+          }
+        }
+        sessionClicks = 0;
+        sessionDistance = 0;
+      } catch (e) {
+        console.error("Error saving stream stats", e);
+      }
+    };
+
+    pythonProcess.stdout.on('data', (data: Buffer) => {
+      const lines = data.toString().split('\n');
+      for (const line of lines) {
+        if (line.trim()) {
+          try {
+            // Verify it's valid JSON before sending
+            const payload = JSON.parse(line);
+            reply.raw.write(`data: ${line}\n\n`);
+            
+            if (payload.event === 'click') sessionClicks++;
+            if (payload.event === 'move') {
+               const dist = Math.sqrt(payload.x * payload.x + payload.y * payload.y);
+               sessionDistance += dist;
+            }
+
+            if (Date.now() - lastSaveTime > 10000) {
+              saveStatsToDb();
+              lastSaveTime = Date.now();
+            }
+          } catch (e) {
+            // Ignore non-JSON output
+          }
+        }
+      }
+    });
+    
+    pythonProcess.stderr.on('data', (data: Buffer) => {
+      console.warn('[Sniffer STDERR]', data.toString());
+    });
+    
+    pythonProcess.on('close', () => {
+      saveStatsToDb();
+      reply.raw.end();
+    });
+    
+    request.raw.on('close', () => {
+      console.log(`[IoT] Conexión SSE cerrada. Deteniendo sniffer para handle ${handle}`);
+      pythonProcess.kill();
+    });
+
+    return reply;
   });
 }

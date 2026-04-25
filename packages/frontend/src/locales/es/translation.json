@@ -208,5 +208,14 @@
       "title_label": "Título",
       "artist_label": "Artista"
     }
+    },
+  "analysis": {
+    "title": "Análisis en Vivo",
+    "subtitle": "Monitoriza eventos de hardware y métricas en tiempo real",
+    "refresh": "Escanear"
+  },
+  "statistics": {
+    "title": "Estadísticas Globales",
+    "subtitle": "Visualiza el histórico de batería y estado de todos tus dispositivos"
   }
 }

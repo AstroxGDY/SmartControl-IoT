@@ -180,5 +180,14 @@
       "title_label": "Titre",
       "artist_label": "Artiste"
     }
+  },
+  "analysis": {
+    "title": "Analyse en Direct",
+    "subtitle": "Surveiller les événements matériels et les métriques en temps réel",
+    "refresh": "Scanner"
+  },
+  "statistics": {
+    "title": "Statistiques Globales",
+    "subtitle": "Visualisez l'historique de la batterie et de l'état de tous vos appareils"
   }
 }

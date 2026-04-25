@@ -188,5 +188,14 @@
       "title_label": "Title",
       "artist_label": "Artist"
     }
+  },
+  "analysis": {
+    "title": "Live Analysis",
+    "subtitle": "Monitor hardware events and metrics in real time",
+    "refresh": "Scan"
+  },
+  "statistics": {
+    "title": "Global Statistics",
+    "subtitle": "Visualize battery and status history for all your devices"
   }
 }
