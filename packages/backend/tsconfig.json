@@ -1,20 +1,20 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "NodeNext", // Permite usar import/export modernos
-    "moduleResolution": "NodeNext", // Ayuda a encontrar las librerías correctamente
-    "verbatimModuleSyntax": true, // Mantiene los imports tal cual para el compilador
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "verbatimModuleSyntax": true,
     "outDir": "./dist",
     "rootDir": "../..",
     "strict": true,
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["../shared/*"] // Para que reconozca tu carpeta shared
+      "@shared/*": ["../shared/*"]
     }
   },
   "include": [
-    "src/**/*", /* Incluye mi backend */
-    "../shared/**/*" /* E incluye explícitamente la carpeta shared */
+    "src/**/*",
+    "../shared/**/*"
   ]
 }

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 // Importamos nuestras nuevas páginas
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -14,7 +14,7 @@ import { ThemeProvider } from './context/ThemeContext';
 export default function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
+      <HashRouter>
       <Routes>
         {/* Layout es el padre: define la Sidebar */}
         <Route path="/" element={<Layout />}>
@@ -28,7 +28,7 @@ export default function App() {
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </ThemeProvider>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Shield, Key, Save, CheckCircle, AlertCircle, Loader2, Settings as SettingsIcon, User, Zap, Info, ArrowLeft } from 'lucide-react';
+import { Shield, Key, Save, CheckCircle, Loader2, Settings as SettingsIcon, User, Zap, Info, ArrowLeft } from 'lucide-react';
 
 declare global {
   interface Window {

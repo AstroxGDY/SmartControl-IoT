@@ -5,6 +5,29 @@ const { exec } = require('child_process');
 const { getSystemDefaults } = require('./system_secrets.cjs');
 
 // ── Servicios del Sistema ───────────────────────────────────────────
+let backendProcess = null;
+
+function startBackend() {
+  const isProd = app.isPackaged;
+  const backendPath = isProd
+    ? path.join(app.getAppPath(), 'packages', 'backend', 'dist', 'packages', 'backend', 'src', 'server.js')
+    : path.join(__dirname, '..', 'packages', 'backend', 'src', 'server.ts');
+
+  console.log(`🚀 Iniciando backend desde: ${backendPath}`);
+
+  if (isProd) {
+    // En producción usamos node directamente sobre el JS compilado
+    backendProcess = exec(`node "${backendPath}"`, (error, stdout, stderr) => {
+      if (error) console.error(`Backend error: ${error}`);
+      console.log(`Backend stdout: ${stdout}`);
+      console.error(`Backend stderr: ${stderr}`);
+    });
+  } else {
+    // En desarrollo ya lo iniciamos con concurrently, pero si quisiéramos:
+    // backendProcess = spawn('npx', ['tsx', backendPath]);
+  }
+}
+
 function ensureDatabase() {
   console.log('🔍 Comprobando servicio MongoDB...');
   // Intentamos arrancar el servicio. Si ya está corriendo, net start devolverá un error inocuo (error 2)
@@ -37,9 +60,14 @@ function createWindow() {
   });
 
   win.removeMenu();
+  
+  startBackend();
 
-  // IMPORTANTE: Cargamos la URL donde corre Vite
-  win.loadURL('http://localhost:5173');
+  if (app.isPackaged) {
+    win.loadFile(path.join(__dirname, '../packages/frontend/dist/index.html'));
+  } else {
+    win.loadURL('http://localhost:5173');
+  }
 
   // Abre las herramientas de desarrollo automáticamente (puedes quitarlo luego)
   // win.webContents.openDevTools();
@@ -125,5 +153,6 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  if (backendProcess) backendProcess.kill();
   if (process.platform !== 'darwin') app.quit();
 });

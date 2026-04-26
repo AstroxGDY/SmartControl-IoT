@@ -14,13 +14,16 @@ except AttributeError:
     # Fallback para Python < 3.7
     pass
 
-# REQUIREMENTS: pip install winsdk pycaw comtypes
+# REQUIREMENTS: pip install winrt-Windows.Media.Control pycaw comtypes
 try:
-    import winsdk.windows.media.control as media_control
+    try:
+        import winrt.windows.media.control as media_control
+    except ImportError:
+        import winsdk.windows.media.control as media_control
     from pycaw.pycaw import AudioUtilities
     import comtypes
 except ImportError as e:
-    print(json.dumps({"error": f"Faltan dependencias: {str(e)}. Ejecuta 'pip install winsdk pycaw comtypes'"}))
+    print(json.dumps({"error": f"Faltan dependencias: {str(e)}. Ejecuta 'pip install winrt-Windows.Media.Control pycaw comtypes'"}))
     sys.exit(1)
 
 # Silenciar advertencias de dispositivos fantasma de Windows

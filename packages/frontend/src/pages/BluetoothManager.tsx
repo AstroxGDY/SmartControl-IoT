@@ -26,7 +26,6 @@ export default function BluetoothManager() {
     title: '',
     artist: ''
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<{ title: string; detail: string } | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 

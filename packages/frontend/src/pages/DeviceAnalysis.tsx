@@ -217,7 +217,6 @@ export default function DeviceAnalysis() {
   const actionTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const [batteryStatus, setBatteryStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
-  const [isSniffing, setIsSniffing] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const clickTimesRef = useRef<number[]>([]);
@@ -278,7 +277,6 @@ export default function DeviceAnalysis() {
   const startSniffing = (device: BluetoothDevice) => {
     stopSniffing();
     setSelectedDevice(device);
-    setIsSniffing(true);
     
     setData({ clicks: 0, clicksPerMin: 0, distance: 0, battery: null });
     setMouseActions({ ...EMPTY_ACTIONS });
@@ -317,7 +315,6 @@ export default function DeviceAnalysis() {
 
     es.onerror = () => {
       console.log("Conexión SSE cerrada o error");
-      setIsSniffing(false);
       es.close();
     };
 
@@ -329,7 +326,6 @@ export default function DeviceAnalysis() {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
-    setIsSniffing(false);
     // Clear all action timers
     Object.values(actionTimers.current).forEach(clearTimeout);
     actionTimers.current = {};

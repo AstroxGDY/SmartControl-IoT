@@ -21,3 +21,7 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Electron distribution
+dist_electron/*
+!dist_electron/.gitkeep

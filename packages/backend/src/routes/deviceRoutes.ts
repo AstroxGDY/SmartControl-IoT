@@ -23,6 +23,27 @@ const TUYA_PORTS = [6666, 6667, 7000] as const;
 /** Tamaño máximo del buffer de stdout para subprocesos Python (10 MB). */
 const EXEC_MAX_BUFFER = 10 * 1024 * 1024;
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+/**
+ * Resuelve la ruta al script o ejecutable de Python según el entorno.
+ */
+function resolveScript(scriptName: string): string {
+  if (isProduction) {
+    // En producción (Electron empaquetado), los binarios están en extraResources/bin
+    return path.join((process as any).resourcesPath, 'bin', `${scriptName.replace('.py', '.exe')}`);
+  }
+  // En desarrollo, están en la carpeta src/scripts relativa al CWD (o usar __dirname)
+  return path.resolve(process.cwd(), 'src', 'scripts', scriptName);
+}
+
+/**
+ * Devuelve el comando para ejecutar un script de Python según el entorno.
+ */
+function getPythonCommand(scriptPath: string): string {
+  return isProduction ? `"${scriptPath}"` : `python "${scriptPath}"`;
+}
+
 // ─────────────────────────────────────────────────────────────
 // CONFIGURACIÓN DINÁMICA (Seguridad)
 // ─────────────────────────────────────────────────────────────
@@ -204,9 +225,9 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
         console.log(`[IoT] Consultando estado en vivo de ${queryData.length} dispositivo(s)...`);
         await fs.writeFile(tempFile, JSON.stringify(queryData), 'utf-8');
 
-        const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'get_statuses.py');
+        const scriptPath = resolveScript('get_statuses.py');
         const { stdout } = await execAsync(
-          `python "${scriptPath}" "${tempFile}"`,
+          `${getPythonCommand(scriptPath)} "${tempFile}"`,
           { env: pythonEnv(), maxBuffer: EXEC_MAX_BUFFER }
         );
 
@@ -293,9 +314,10 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
 
       const snapshotPath = path.resolve(process.cwd(), 'snapshot.json');
 
-      console.log('[IoT] Ejecutando: python -m tinytuya scan ...');
+      console.log('[IoT] Ejecutando escáner de red...');
+      const scanScript = resolveScript('tuya_scan_native.py');
       await execAsync(
-        `python -m tinytuya scan -nocolor -y -snapshot-file "${snapshotPath}"`,
+        `${getPythonCommand(scanScript)} -snapshot-file "${snapshotPath}"`,
         { maxBuffer: EXEC_MAX_BUFFER }
       );
 
@@ -311,9 +333,9 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
       // Cruzar con datos de Tuya Cloud (nombre, icono, localKey)
       let cloudDevices: any[] = [];
       try {
-        const cloudScript = path.resolve(process.cwd(), 'src', 'scripts', 'cloud_scan.py');
+        const cloudScript = resolveScript('cloud_scan.py');
         const { stdout: cloudOut } = await execAsync(
-          `python "${cloudScript}"`,
+          `${getPythonCommand(cloudScript)}`,
           { env: pythonEnv(), maxBuffer: EXEC_MAX_BUFFER }
         );
         const match = cloudOut.match(/\[[\s\S]*\]/);
@@ -377,11 +399,11 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
     const { tuyaId, ip, version, productKey } = deviceData.params;
     console.log(`[IoT] Emparejando [${deviceData.name}] (TuyaID: ${tuyaId})...`);
 
-    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'cloud_pair.py');
+    const scriptPath = resolveScript('cloud_pair.py');
 
     try {
       const { stdout, stderr } = await execAsync(
-        `python "${scriptPath}"`,
+        `${getPythonCommand(scriptPath)}`,
         { env: pythonEnv({ TUYA_DEVICE_ID: tuyaId }), maxBuffer: EXEC_MAX_BUFFER }
       );
 
@@ -439,9 +461,9 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
     let schema = storedSchema;
     if (!schema && process.env.TUYA_API_REGION) {
       try {
-        const schemaScript = path.resolve(process.cwd(), 'src', 'scripts', 'get_schema.py');
+        const schemaScript = resolveScript('get_schema.py');
         const { stdout } = await execAsync(
-          `python "${schemaScript}"`,
+          `${getPythonCommand(schemaScript)}`,
           { env: pythonEnv({ TUYA_DEVICE_ID: tuyaId }), maxBuffer: EXEC_MAX_BUFFER }
         );
         const res = extractJson(stdout) as any;
@@ -455,10 +477,10 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
     }
 
     // Consultar DPs en tiempo real
-    const statusScript = path.resolve(process.cwd(), 'src', 'scripts', 'get_status.py');
+    const statusScript = resolveScript('get_status.py');
     try {
       const { stdout } = await execAsync(
-        `python "${statusScript}"`,
+        `${getPythonCommand(statusScript)}`,
         {
           env: pythonEnv({
             TUYA_DEVICE_ID: tuyaId,
@@ -499,10 +521,10 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Faltan credenciales locales para enviar comando.' });
       }
 
-      const cmdScript = path.resolve(process.cwd(), 'src', 'scripts', 'send_command.py');
+      const cmdScript = resolveScript('send_command.py');
       try {
         const { stdout } = await execAsync(
-          `python "${cmdScript}"`,
+          `${getPythonCommand(cmdScript)}`,
           {
             env: pythonEnv({
               TUYA_DEVICE_ID: tuyaId,
@@ -571,10 +593,10 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
 
     console.log(`[IoT] Obteniendo historial para ${device.name} (${tuyaId})...`);
 
-    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'get_logs.py');
+    const scriptPath = resolveScript('get_logs.py');
     try {
       const { stdout } = await execAsync(
-        `python "${scriptPath}"`,
+        `${getPythonCommand(scriptPath)}`,
         { 
           env: pythonEnv({ TUYA_DEVICE_ID: tuyaId }),
           maxBuffer: EXEC_MAX_BUFFER 
@@ -642,9 +664,9 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
 
   // ── GET /devices/bluetooth/scan ──────────────────────────────
   fastify.get('/bluetooth/scan', async (_request, reply) => {
-    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'bluetooth_manager.py');
+    const scriptPath = resolveScript('bluetooth_manager.py');
     try {
-      const { stdout } = await execAsync(`python "${scriptPath}" scan`, { env: pythonEnv() });
+      const { stdout } = await execAsync(`${getPythonCommand(scriptPath)} scan`, { env: pythonEnv() });
       return JSON.parse(stdout);
     } catch (e: any) {
       return reply.status(500).send({ error: e.message });
@@ -654,9 +676,9 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
   // ── GET /devices/bluetooth/state ──────────────────────────────
   fastify.get<{ Querystring: { deviceId?: string; deviceName?: string } }>('/bluetooth/state', async (request, reply) => {
     const { deviceId, deviceName } = request.query;
-    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'bluetooth_manager.py');
+    const scriptPath = resolveScript('bluetooth_manager.py');
     try {
-      const { stdout } = await execAsync(`python "${scriptPath}" state`, { 
+      const { stdout } = await execAsync(`${getPythonCommand(scriptPath)} state`, { 
         env: pythonEnv({ BT_DEVICE_ID: deviceId || '', BT_DEVICE_NAME: deviceName || '' }) 
       });
       return JSON.parse(stdout);
@@ -668,9 +690,9 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
   // ── POST /devices/bluetooth/connect ──────────────────────────
   fastify.post<{ Body: { deviceId: string } }>('/bluetooth/connect', async (request, reply) => {
     const { deviceId } = request.body;
-    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'bluetooth_manager.py');
+    const scriptPath = resolveScript('bluetooth_manager.py');
     try {
-      const { stdout } = await execAsync(`python "${scriptPath}" connect ${deviceId}`, { env: pythonEnv() });
+      const { stdout } = await execAsync(`${getPythonCommand(scriptPath)} connect ${deviceId}`, { env: pythonEnv() });
       const res = JSON.parse(stdout);
       if (res.error) return reply.status(400).send(res);
       return res;
@@ -682,10 +704,10 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
   // ── POST /devices/bluetooth/command ──────────────────────────
   fastify.post<{ Body: { command: string; value?: any; deviceName?: string; deviceId?: string } }>('/bluetooth/command', async (request, reply) => {
     const { command, value, deviceName, deviceId } = request.body;
-    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'bluetooth_manager.py');
+    const scriptPath = resolveScript('bluetooth_manager.py');
     try {
       const { stdout } = await execAsync(
-        `python "${scriptPath}" command ${command} ${value ?? ''}`, 
+        `${getPythonCommand(scriptPath)} command ${command} ${value ?? ''}`, 
         { env: pythonEnv({ BT_DEVICE_NAME: deviceName || '', BT_DEVICE_ID: deviceId || '' }) }
       );
       const res = JSON.parse(stdout);
@@ -723,9 +745,9 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
 
   // ── GET /devices/analysis/mice ──────────────────────────────
   fastify.get('/analysis/mice', async (_request, reply) => {
-    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'mouse_sniffer.py');
+    const scriptPath = resolveScript('mouse_sniffer.py');
     try {
-      const { stdout } = await execAsync(`python "${scriptPath}" list`, { env: pythonEnv() });
+      const { stdout } = await execAsync(`${getPythonCommand(scriptPath)} list`, { env: pythonEnv() });
       return JSON.parse(stdout);
     } catch (e: any) {
       return reply.status(500).send({ error: e.message });
@@ -735,9 +757,9 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
   // ── GET /devices/analysis/battery/:id ────────────────────────
   fastify.get<{ Params: { id: string } }>('/analysis/battery/:id', async (request, reply) => {
     const { id } = request.params;
-    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'mouse_sniffer.py');
+    const scriptPath = resolveScript('mouse_sniffer.py');
     try {
-      const { stdout } = await execAsync(`python "${scriptPath}" battery "${id}"`, { env: pythonEnv() });
+      const { stdout } = await execAsync(`${getPythonCommand(scriptPath)} battery "${id}"`, { env: pythonEnv() });
       return JSON.parse(stdout);
     } catch (e: any) {
       return reply.status(500).send({ error: e.message });
@@ -756,8 +778,10 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
       'Access-Control-Allow-Origin': '*'
     });
     
-    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'mouse_sniffer.py');
-    const pythonProcess = spawn('python', [scriptPath, 'sniff', handle], { env: pythonEnv() });
+    const scriptPath = resolveScript('mouse_sniffer.py');
+    const pythonProcess = isProduction 
+      ? spawn(scriptPath, ['sniff', handle], { env: pythonEnv() })
+      : spawn('python', [scriptPath, 'sniff', handle], { env: pythonEnv() });
     
     let sessionClicks = 0;
     let sessionDistance = 0;

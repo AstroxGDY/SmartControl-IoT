@@ -21,7 +21,6 @@ const DeviceStatsSchema: Schema = new Schema<IDeviceStatsDocument>({
   dps: { type: Schema.Types.Mixed },
 }, {
   // We want to be able to query fast by device and time
-  index: true
 });
 
 DeviceStatsSchema.index({ deviceId: 1, timestamp: -1 });
