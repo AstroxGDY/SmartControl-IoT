@@ -74,3 +74,4 @@ def extraer_credenciales_nube():
 
 if __name__ == "__main__":
     extraer_credenciales_nube()
+
