@@ -197,5 +197,25 @@
   "statistics": {
     "title": "Global Statistics",
     "subtitle": "Visualize battery and status history for all your devices"
+  },
+  "settings": {
+    "title": "System Settings",
+    "subtitle": "Manage your Tuya credentials and security preferences",
+    "mode_title": "Configuration Mode",
+    "mode_simple": "Simple Mode (Recommended)",
+    "mode_simple_desc": "Use the system keys provided by the developer. Ideal for home users.",
+    "mode_advanced": "Advanced Mode",
+    "mode_advanced_desc": "Use your own Tuya IoT Platform keys. Requires a developer account.",
+    "using_defaults": "Currently using System Keys",
+    "security_notice": "Your keys are stored encrypted using your Operating System's security technology.",
+    "switch_advanced": "Configure my own keys",
+    "switch_simple": "Back to Simple Mode",
+    "client_id": "Client ID",
+    "client_secret": "Client Secret",
+    "region": "API Region",
+    "save_success": "Configuration saved successfully.",
+    "terms_title": "Terms of Use (Simple Mode)",
+    "terms_text": "By using Simple Mode, you agree that developer credentials will be used for communication with Tuya Cloud. We do not collect your private keys, but the service depends on the validity of these system credentials.",
+    "accept_terms": "I accept the terms and want to use Simple Mode"
   }
 }

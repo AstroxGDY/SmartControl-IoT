@@ -90,6 +90,7 @@ export default function Settings() {
       const electron = window.require('electron');
       await electron.ipcRenderer.invoke('reset-tuya-config');
       await loadConfig();
+      setShowTerms(false);
       setStatus('success');
       setTimeout(() => setStatus('idle'), 3000);
     } catch (e) {
@@ -132,15 +133,15 @@ export default function Settings() {
                 if (isAdvanced) setShowTerms(true);
             }}
             disabled={isDefault && !isAdvanced}
-            className={`w-full text-left p-6 rounded-3xl border transition-all duration-300 ${isDefault ? 'bg-purple-600 border-transparent shadow-xl shadow-purple-500/20 text-white' : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700'}`}
+            className={`w-full text-left p-6 rounded-3xl border transition-all duration-300 ${!isAdvanced ? 'bg-purple-600 border-transparent shadow-xl shadow-purple-500/20 text-white' : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700'}`}
           >
             <div className="flex items-center gap-4 mb-3">
-              <div className={`p-3 rounded-2xl ${isDefault ? 'bg-white/20' : 'bg-purple-50 dark:bg-purple-900/20 text-purple-600'}`}>
+              <div className={`p-3 rounded-2xl ${!isAdvanced ? 'bg-white/20' : 'bg-purple-50 dark:bg-purple-900/20 text-purple-600'}`}>
                 <Zap size={24} />
               </div>
               <span className="font-bold text-lg">{t('settings.mode_simple')}</span>
             </div>
-            <p className={`text-sm leading-relaxed ${isDefault ? 'text-purple-100' : 'text-gray-500 dark:text-gray-400'}`}>
+            <p className={`text-sm leading-relaxed ${!isAdvanced ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'}`}>
               {t('settings.mode_simple_desc')}
             </p>
           </button>
@@ -148,15 +149,15 @@ export default function Settings() {
           {/* Advanced Mode Tool */}
           <button 
             onClick={() => setIsAdvanced(true)}
-            className={`w-full text-left p-6 rounded-3xl border transition-all duration-300 ${!isDefault ? 'bg-blue-600 border-transparent shadow-xl shadow-blue-500/20 text-white' : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700'}`}
+            className={`w-full text-left p-6 rounded-3xl border transition-all duration-300 ${isAdvanced ? 'bg-blue-600 border-transparent shadow-xl shadow-blue-500/20 text-white' : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700'}`}
           >
             <div className="flex items-center gap-4 mb-3">
-              <div className={`p-3 rounded-2xl ${!isDefault ? 'bg-white/20' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600'}`}>
+              <div className={`p-3 rounded-2xl ${isAdvanced ? 'bg-white/20' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600'}`}>
                 <User size={24} />
               </div>
               <span className="font-bold text-lg">{t('settings.mode_advanced')}</span>
             </div>
-            <p className={`text-sm leading-relaxed ${!isDefault ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
+            <p className={`text-sm leading-relaxed ${isAdvanced ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'}`}>
               {t('settings.mode_advanced_desc')}
             </p>
           </button>
