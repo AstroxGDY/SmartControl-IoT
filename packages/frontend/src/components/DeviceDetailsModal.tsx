@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Cpu, Hash, Power, PowerOff, Loader2, Wifi, Trash2, Pencil, Check, Upload, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X, Cpu, Hash, Power, PowerOff, Loader2, Wifi, Trash2, Pencil, Check, Upload, AlertCircle, Shield } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PRESET_ICONS } from '../config/deviceIcons';
 
@@ -11,6 +12,7 @@ interface DeviceDetailsModalProps {
 
 export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetailsModalProps) => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     
     // ── Hooks ──
     const [liveDps, setLiveDps] = useState<Record<string, any>>(device?.attributes?.dps ?? {});
@@ -282,6 +284,16 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                             >
                                 <Power size={14} />
                                 <span className="hidden xs:inline">{isToggling ? '...' : (liveDps[togglePowerDP] ? t('device_card.status.off_action') : t('device_card.status.on_action'))}</span>
+                            </button>
+                        )}
+
+                        {!isEditing && (
+                            <button
+                                onClick={() => { navigate('/security'); onClose(); }}
+                                className="p-1.5 sm:p-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 border border-indigo-100 dark:border-indigo-900/30"
+                                title="Auditoría de Seguridad"
+                            >
+                                <Shield size={16} />
                             </button>
                         )}
 

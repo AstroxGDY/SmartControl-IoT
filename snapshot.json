@@ -1,9 +1,9 @@
 {
-    "timestamp": 1775664366.5148396,
+    "timestamp": 1778091897.1861866,
     "devices": [
         {
             "id": "bf7ab23339cbe03832cjza",
-            "ip": "192.168.1.16",
+            "ip": "192.168.1.11",
             "active": 2,
             "encrypt": true,
             "productKey": "keym9qkuywghyrvs",
@@ -16,22 +16,6 @@
             "dev_type": "default",
             "origin": "broadcast",
             "ver": "3.3"
-        },
-        {
-            "id": "bfe7bbe10084566530apuy",
-            "ip": "192.168.1.17",
-            "active": 2,
-            "encrypt": true,
-            "productKey": "keyjup78v54myhan",
-            "token": true,
-            "wf_cfg": true,
-            "name": "",
-            "key": "",
-            "mac": "",
-            "ability": 0,
-            "dev_type": "default",
-            "origin": "broadcast",
-            "ver": "3.4"
         }
     ]
 }

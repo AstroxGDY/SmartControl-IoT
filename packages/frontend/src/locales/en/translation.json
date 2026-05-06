@@ -217,5 +217,21 @@
     "terms_title": "Terms of Use (Simple Mode)",
     "terms_text": "By using Simple Mode, you agree that developer credentials will be used for communication with Tuya Cloud. We do not collect your private keys, but the service depends on the validity of these system credentials.",
     "accept_terms": "I accept the terms and want to use Simple Mode"
+  },
+  "security": {
+    "title": "Security Audit",
+    "subtitle": "Monitor known vulnerabilities (CVE) and receive preventive tips for your IoT devices.",
+    "vulnerable": "Vulnerable",
+    "total_protected": "Protected Devices",
+    "detected_vulns": "Detected Vulnerabilities",
+    "critical_risks": "Critical Risks (CVSS > 7)",
+    "scan_device": "Device Analysis",
+    "nist_history": "NIST History (NVD)",
+    "mitigation_tips": "Mitigation Recommendations",
+    "no_vulns": "No vulnerabilities were found for this model in the official database.",
+    "no_actions": "No immediate actions are required. Your device has no known critical vulnerabilities.",
+    "reminder": "Reminder: Absolute security does not exist. Keep your devices updated and on isolated networks.",
+    "analyzing": "Analyzing security...",
+    "unexpanded": "Unanalyzed"
   }
 }

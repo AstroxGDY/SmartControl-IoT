@@ -24,6 +24,8 @@ export interface IDeviceState {
     version?: string;
     localKey?: string;
     productKey?: string;
+    manufacturer?: string;
+    model?: string;
     // dps es donde Tuya guarda todos sus valores en tiempo real (temperatura, modos, switches)
     dps?: Record<string, any>;
     [key: string]: any;

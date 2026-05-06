@@ -193,6 +193,44 @@ async function killProcesses(pids: number[]): Promise<{ killed: number[]; failed
   return { killed, failed };
 }
 
+/**
+ * Ejecuta el escáner NVD para un dispositivo y guarda el resultado en la BD.
+ */
+async function performSecurityScan(device: any) {
+  const manufacturer = device.attributes?.manufacturer || device.name.split(' ')[0] || 'Unknown';
+  const model = device.attributes?.model || device.name || 'Device';
+  const version = device.attributes?.version || '';
+
+  console.log(`[Security] Iniciando escaneo para ${device.name} (${manufacturer} ${model})...`);
+  
+  const scriptPath = resolveScript('nvd_scanner.py');
+  try {
+    const { stdout } = await execAsync(
+      `${getPythonCommand(scriptPath)} "${manufacturer}" "${model}" "${version}"`,
+      { env: pythonEnv(), maxBuffer: EXEC_MAX_BUFFER }
+    );
+
+    const result = extractJson(stdout) as any;
+    if (result && (result as any).estado === 'OK') {
+      await Device.updateOne(
+        { _id: device._id },
+        { $set: { 
+            'attributes.security': result, 
+            'attributes.lastSecurityScan': new Date(),
+            'attributes.manufacturer': manufacturer,
+            'attributes.model': model
+          } 
+        }
+      );
+      return result;
+    }
+    return { error: (result as any)?.estado || 'Error desconocido' };
+  } catch (e: any) {
+    console.error(`[Security ERROR] Fallo escaneo para ${device._id}:`, e.message);
+    return { error: e.message };
+  }
+}
+
 // ─────────────────────────────────────────────────────────────
 // RUTAS
 // ─────────────────────────────────────────────────────────────
@@ -431,6 +469,9 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
           dps: deviceData.params.dps ?? {},
         },
       }).save();
+
+      // Lanzar escaneo de seguridad en background
+      performSecurityScan(saved).catch(err => console.error("Error en escaneo inicial:", err));
 
       return { message: '¡Emparejado con éxito!', device: saved };
 
@@ -740,6 +781,10 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
         bluetoothId: id,
       }
     }).save();
+    
+    // Lanzar escaneo de seguridad en background
+    performSecurityScan(saved).catch(err => console.error("Error en escaneo inicial BT:", err));
+
     return saved;
   });
 
@@ -854,5 +899,19 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
     });
 
     return reply;
+  });
+
+  // ── GET /devices/:id/security-scan ───────────────────────────
+  // Fuerza un re-escaneo de seguridad para un dispositivo específico.
+  fastify.get<{ Params: { id: string } }>('/:id/security-scan', async (request, reply) => {
+    const { id } = request.params;
+    const device = await Device.findById(id);
+
+    if (!device) return reply.status(404).send({ error: 'Dispositivo no encontrado.' });
+
+    const result = await performSecurityScan(device);
+    if (result.error) return reply.status(500).send(result);
+    
+    return result;
   });
 }

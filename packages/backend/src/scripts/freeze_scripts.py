@@ -11,7 +11,8 @@ scripts = [
     "get_status.py",
     "get_statuses.py",
     "mouse_sniffer.py",
-    "send_command.py"
+    "send_command.py",
+    "nvd_scanner.py"
 ]
 
 # Create a small script for tinytuya scan since it's used as a module

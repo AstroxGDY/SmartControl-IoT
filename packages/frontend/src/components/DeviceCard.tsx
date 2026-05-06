@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Lightbulb, Thermometer, Camera,
-  Plus, Wifi, Plug, Bot, Droplets, Trash2, AlertTriangle, Loader2, type LucideIcon
+  Plus, Wifi, Plug, Bot, Droplets, Trash2, AlertTriangle, Loader2, Shield, type LucideIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DeviceDetailsModal } from './DeviceDetailsModal';
@@ -137,6 +137,14 @@ export const DeviceCard = ({ device, onDeleted }: DeviceCardProps) => {
         >
           <Trash2 size={14} />
         </button>
+        
+        {/* Badge de Seguridad si hay vulnerabilidades */}
+        {device.attributes?.security?.total_vulnerabilidades > 0 && (
+          <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-red-200 dark:border-red-800 animate-pulse">
+            <Shield size={10} />
+            <span>CVE</span>
+          </div>
+        )}
 
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 p-1 shadow-sm dark:shadow-none shrink-0 flex items-center justify-center border border-gray-100 dark:border-slate-700">

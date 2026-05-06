@@ -1,4 +1,4 @@
-import { LayoutDashboard, Home, PlusCircle, Settings, Moon, Sun, Bluetooth, Activity, BarChart } from 'lucide-react';
+import { LayoutDashboard, Home, PlusCircle, Settings, Moon, Sun, Bluetooth, Activity, BarChart, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +27,9 @@ export const Sidebar = () => {
         </Link>
         <Link to="/statistics" title={t('statistics.title', 'Estadísticas')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
           <BarChart size={24} />
+        </Link>
+        <Link to="/security" title={t('security.title', 'Seguridad')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
+          <Shield size={24} />
         </Link>
       </nav>
 
