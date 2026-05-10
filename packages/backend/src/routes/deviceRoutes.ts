@@ -1,48 +1,20 @@
 import type { FastifyInstance } from 'fastify';
 import { Device } from '../models/Device.js';
 import { DeviceStats } from '../models/DeviceStats.js';
+import { DeviceEvent } from '../models/DeviceEvent.js';
+import { syncDeviceLogs } from '../services/logService.js';
 import { type IDeviceInfo } from '../../../shared/types.js';
-import { exec, spawn } from 'node:child_process';
-import { promisify } from 'node:util';
+import { 
+    resolveScript, 
+    getPythonCommand, 
+    pythonEnv, 
+    extractJson, 
+    execAsync, 
+    EXEC_MAX_BUFFER 
+} from '../utils/pythonUtils.js';
 import fs from 'node:fs/promises';
-import { createWriteStream } from 'node:fs';
-import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
 import os from 'node:os';
-import crypto from 'node:crypto';
-
-const execAsync = promisify(exec);
-
-// ─────────────────────────────────────────────────────────────
-// CONSTANTES
-// ─────────────────────────────────────────────────────────────
-
-/** Puertos UDP/TCP que tinytuya necesita para el escaneo de red local. */
-const TUYA_PORTS = [6666, 6667, 7000] as const;
-
-/** Tamaño máximo del buffer de stdout para subprocesos Python (10 MB). */
-const EXEC_MAX_BUFFER = 10 * 1024 * 1024;
-
-const isProduction = process.env.NODE_ENV === 'production';
-
-/**
- * Resuelve la ruta al script o ejecutable de Python según el entorno.
- */
-function resolveScript(scriptName: string): string {
-  if (isProduction) {
-    // En producción (Electron empaquetado), los binarios están en extraResources/bin
-    return path.join((process as any).resourcesPath, 'bin', `${scriptName.replace('.py', '.exe')}`);
-  }
-  // En desarrollo, están en la carpeta src/scripts relativa al CWD (o usar __dirname)
-  return path.resolve(process.cwd(), 'src', 'scripts', scriptName);
-}
-
-/**
- * Devuelve el comando para ejecutar un script de Python según el entorno.
- */
-function getPythonCommand(scriptPath: string): string {
-  return isProduction ? `"${scriptPath}"` : `python "${scriptPath}"`;
-}
 
 // ─────────────────────────────────────────────────────────────
 // CONFIGURACIÓN DINÁMICA (Seguridad)
@@ -76,33 +48,12 @@ interface GetDeviceParams {
 // HELPERS
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Construye el entorno para todos los subprocesos Python.
- * Fuerza UTF-8 en stdout/stderr para evitar caracteres corruptos en Windows
- * (el sistema puede usar CP1252 por defecto).
- */
-const pythonEnv = (extra: Record<string, string> = {}): NodeJS.ProcessEnv => ({
-  ...process.env,
-  // Sobrescribimos con la config dinámica si existe
-  TUYA_API_KEY: globalConfig.TUYA_API_KEY || process.env.TUYA_API_KEY,
-  TUYA_API_SECRET: globalConfig.TUYA_API_SECRET || process.env.TUYA_API_SECRET,
-  TUYA_API_REGION: globalConfig.TUYA_API_REGION || process.env.TUYA_API_REGION,
-  PYTHONIOENCODING: 'utf-8',
-  PYTHONUTF8: '1', // Python 3.7+ "UTF-8 mode": afecta stdin/stdout/stderr y open()
-  PYTHONUNBUFFERED: '1',
-  ...extra,
-});
+// ─────────────────────────────────────────────────────────────
+// CONSTANTES
+// ─────────────────────────────────────────────────────────────
 
-/**
- * Extrae el primer objeto JSON `{...}` de un string de stdout.
- * Necesario porque Python puede emitir líneas de log antes del JSON.
- */
-function extractJson(stdout: string): unknown {
-  const start = stdout.indexOf('{');
-  const end = stdout.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('No se encontró JSON en la salida del script.');
-  return JSON.parse(stdout.substring(start, end + 1));
-}
+/** Puertos UDP/TCP que tinytuya necesita para el escaneo de red local. */
+const TUYA_PORTS = [6666, 6667, 7000] as const;
 
 /**
  * Detecta qué procesos del sistema operativo están ocupando los puertos de Tuya.
@@ -617,8 +568,55 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
 
     if (!updated) return reply.status(404).send({ error: 'Dispositivo no encontrado.' });
 
-    console.log(`[IoT] Dispositivo [${id}] actualizado: ${name} (${image})`);
     return { success: true, device: updated };
+  });
+
+  // ── POST /devices/:id/logs/sync ──────────────────────────────
+  // Dispara una sincronización manual con Tuya Cloud y guarda en BBDD
+  fastify.post<{ Params: GetDeviceParams }>('/:id/logs/sync', async (request, reply) => {
+    const { id } = request.params;
+    const result = await syncDeviceLogs(id);
+    return result;
+  });
+
+  // ── GET /devices/:id/logs/db ──────────────────────────────────
+  // Obtiene el historial de eventos almacenado localmente en nuestra BBDD
+  fastify.get<{ Params: GetDeviceParams }>('/:id/logs/db', async (request, reply) => {
+    const { id } = request.params;
+    const logs = await DeviceEvent.find({ deviceId: id }).sort({ eventTime: -1 }).limit(1000).lean();
+    return { success: true, logs };
+  });
+
+  // ── GET /devices/:id/logs/export ──────────────────────────────
+  // Exporta el historial almacenado en la BBDD a formato CSV
+  fastify.get<{ Params: GetDeviceParams }>('/:id/logs/export', async (request, reply) => {
+    const { id } = request.params;
+    const device = await Device.findById(id).lean();
+    if (!device) return reply.status(404).send({ error: 'Dispositivo no encontrado.' });
+
+    const logs = await DeviceEvent.find({ deviceId: id }).sort({ eventTime: -1 }).lean();
+    
+    // Cabeceras del CSV
+    let csv = '\uFEFF' + 'Fecha,Hora,Parámetro,ID (DP),Valor Registrado\n';
+    
+    for (const log of logs) {
+      const dt = new Date(log.eventTime);
+      const fecha = dt.toLocaleDateString('es-ES');
+      const hora = dt.toLocaleTimeString('es-ES');
+      
+      // Intentamos formatear el valor y el código
+      let valStr = String(log.value);
+      if (typeof log.value === 'boolean') valStr = log.value ? 'ON' : 'OFF';
+      
+      csv += `"${fecha}","${hora}","${log.code}","${log.code}","${valStr}"\n`;
+    }
+
+    const fileName = `Historial_${device.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+
+    reply
+      .header('Content-Type', 'text/csv; charset=utf-8')
+      .header('Content-Disposition', `attachment; filename="${fileName}"`)
+      .send(csv);
   });
 
   // ── GET /devices/:id/logs ────────────────────────────────────

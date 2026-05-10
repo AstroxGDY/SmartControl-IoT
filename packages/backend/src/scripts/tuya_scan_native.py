@@ -9,21 +9,27 @@ def main():
         if idx + 1 < len(sys.argv):
             snapshot_file = sys.argv[idx+1]
     
-    # TinyTuya 1.17.6+ uses deviceScan for discovery
-    # We set verbose=False to keep stdout clean for our extractJson logic
+    # In tinytuya 1.17.6, deviceScan does not accept maxwait/scantime as kwarg.
+    # It uses the default SCANTIME (usually 18s).
+    # We set poll=False to avoid errors when it tries to get status without localKey.
     try:
-        devices = tinytuya.deviceScan(verbose=False, maxwait=10)
+        devices = tinytuya.deviceScan(verbose=False, poll=False)
     except Exception as e:
-        # Fallback if deviceScan fails or signature is different
+        print(f"Error scanning: {e}", file=sys.stderr)
         devices = {}
 
     output = {"devices": []}
-    # deviceScan returns a dict where keys are IDs
-    for dev_id in devices:
-        output["devices"].append(devices[dev_id])
+    if isinstance(devices, dict):
+        for dev_id in devices:
+            dev = devices[dev_id]
+            # Ensure it has the ID field
+            if isinstance(dev, dict):
+                if 'id' not in dev: 
+                    dev['id'] = dev_id
+                output["devices"].append(dev)
     
     with open(snapshot_file, "w") as f:
-        json.dump(output, f)
+        json.dump(output, f, indent=4)
 
 if __name__ == "__main__":
     main()

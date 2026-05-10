@@ -1,4 +1,4 @@
-import { LayoutDashboard, Home, PlusCircle, Settings, Moon, Sun, Bluetooth, Activity, BarChart, Shield } from 'lucide-react';
+import { LayoutDashboard, Home, PlusCircle, Settings, Moon, Sun, Bluetooth, Activity, BarChart, Shield, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +30,9 @@ export const Sidebar = () => {
         </Link>
         <Link to="/security" title={t('security.title', 'Seguridad')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
           <Shield size={24} />
+        </Link>
+        <Link to="/rules" title={t('sidebar.rules', 'Reglas Inteligentes')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
+          <Zap size={24} />
         </Link>
       </nav>
 

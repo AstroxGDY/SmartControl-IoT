@@ -8,6 +8,7 @@ import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import devicesRoutes from './routes/deviceRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
+import ruleRoutes from './routes/ruleRoutes.js';
 
 const server = Fastify({ logger: true });
 const PORT = process.env.PORT || 3000;
@@ -58,6 +59,7 @@ const start = async () => {
 
     await server.register(devicesRoutes, { prefix: '/devices' });
     await server.register(statsRoutes, { prefix: '/stats' });
+    await server.register(ruleRoutes, { prefix: '/rules' });
 
     // Escuchamos en 0.0.0.0 para evitar problemas de resolución de localhost (IPv4 vs IPv6) en fetch
     await server.listen({ port: Number(PORT), host: '0.0.0.0' });

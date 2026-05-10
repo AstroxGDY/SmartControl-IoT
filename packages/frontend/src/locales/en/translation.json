@@ -6,7 +6,8 @@
     "help": "Help",
     "logout": "Logout",
     "toggle_dark": "Switch to Dark Mode",
-    "toggle_light": "Switch to Light Mode"
+    "toggle_light": "Switch to Light Mode",
+    "rules": "Smart Rules"
   },
   "dashboard": {
     "title": "Control Panel",
@@ -233,5 +234,24 @@
     "reminder": "Reminder: Absolute security does not exist. Keep your devices updated and on isolated networks.",
     "analyzing": "Analyzing security...",
     "unexpanded": "Unanalyzed"
+  },
+  "rules": {
+    "title": "Smart Rules",
+    "subtitle": "Program automatic actions and personalized scenarios",
+    "tap_to_run": "Manual Scenes",
+    "automation": "Automations",
+    "trigger": "Execute",
+    "delete": "Delete",
+    "new_rule": "New Rule",
+    "no_rules": "No rules configured yet.",
+    "create_desc": "Configure an automatic action based on an event.",
+    "status_active": "Active",
+    "status_inactive": "Inactive",
+    "delete_confirm": "Delete this rule?",
+    "delete_confirm_desc": "The automation will stop working immediately.",
+    "execute_success": "Rule executed successfully",
+    "execute_error": "Error executing the rule",
+    "delete_success": "Rule deleted",
+    "delete_error": "Error deleting the rule"
   }
 }

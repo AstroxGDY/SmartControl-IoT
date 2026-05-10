@@ -1,51 +1,44 @@
 import { Device } from '../models/Device.js';
 import { DeviceStats } from '../models/DeviceStats.js';
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
+import { DeviceEvent } from '../models/DeviceEvent.js';
 import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs/promises';
-
-const execAsync = promisify(exec);
-const EXEC_MAX_BUFFER = 10 * 1024 * 1024;
-
-const pythonEnv = (extra: Record<string, string> = {}): NodeJS.ProcessEnv => ({
-  ...process.env,
-  PYTHONIOENCODING: 'utf-8',
-  PYTHONUTF8: '1',
-  ...extra,
-});
-
-function extractJson(stdout: string): unknown {
-  const start = stdout.indexOf('{');
-  const end = stdout.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('No se encontró JSON en la salida del script.');
-  return JSON.parse(stdout.substring(start, end + 1));
-}
+import { 
+    resolveScript, 
+    getPythonCommand, 
+    pythonEnv, 
+    extractJson, 
+    execAsync, 
+    EXEC_MAX_BUFFER 
+} from './pythonUtils.js';
+import { syncDeviceLogs } from '../services/logService.js';
 
 export const startScheduler = () => {
-  // Configurado a 1 hora (3600000 ms)
-  const INTERVAL = 60 * 60 * 1000; 
+  // 1. Recolección de estadísticas (1 hora)
+  const STATS_INTERVAL = 60 * 60 * 1000; 
+  // 2. Sincronización de Logs (10 minutos)
+  const LOGS_INTERVAL = 10 * 60 * 1000;
 
-  console.log(`[Scheduler] Tarea en segundo plano iniciada. Recolectará estadísticas cada ${INTERVAL / 1000}s`);
+  console.log(`[Scheduler] Tarea en segundo plano iniciada.`);
+  console.log(` - Estadísticas: cada ${STATS_INTERVAL / 1000}s`);
+  console.log(` - Historial (Logs): cada ${LOGS_INTERVAL / 1000}s`);
 
+  // --- INTERVALO ESTADÍSTICAS ---
   setInterval(async () => {
     console.log('[Scheduler] Iniciando recolección de estadísticas periódica...');
-    
     try {
       const devices = await Device.find().lean();
-      
       for (const device of devices) {
         let batteryLevel: number | undefined;
         let dps: any;
         let status: 'online' | 'offline' | 'error' = 'offline';
 
-        // Si es un dispositivo Bluetooth (Audio/Ratón)
         if (device.attributes?.bluetoothId) {
           try {
-            const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'mouse_sniffer.py');
+            const scriptPath = resolveScript('mouse_sniffer.py');
             const { stdout } = await execAsync(
-              `python "${scriptPath}" battery "${device.attributes.bluetoothId}"`, 
+              `${getPythonCommand(scriptPath)} battery "${device.attributes.bluetoothId}"`, 
               { env: pythonEnv() }
             );
             const res = JSON.parse(stdout) as any;
@@ -58,7 +51,6 @@ export const startScheduler = () => {
              status = 'offline';
           }
         } 
-        // Si es un dispositivo Tuya (WiFi)
         else if (device.attributes?.tuyaId && device.attributes?.ip && device.attributes?.localKey) {
           try {
             const tempFile = path.join(os.tmpdir(), `sc_query_sched_${Date.now()}.json`);
@@ -70,9 +62,9 @@ export const startScheduler = () => {
               version: device.attributes.version ?? '3.3'
             }]), 'utf-8');
 
-            const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'get_statuses.py');
+            const scriptPath = resolveScript('get_statuses.py');
             const { stdout } = await execAsync(
-              `python "${scriptPath}" "${tempFile}"`,
+              `${getPythonCommand(scriptPath)} "${tempFile}"`,
               { env: pythonEnv(), maxBuffer: EXEC_MAX_BUFFER }
             );
             await fs.unlink(tempFile).catch(() => {});
@@ -83,7 +75,6 @@ export const startScheduler = () => {
               if (live && live.success && live.dps) {
                  status = 'online';
                  dps = live.dps;
-                 // Actualizar DB de Device en vivo también
                  await Device.updateOne({ _id: device._id }, { $set: { status: 'online', 'attributes.dps': live.dps } });
               } else {
                  status = 'offline';
@@ -95,11 +86,9 @@ export const startScheduler = () => {
             status = 'offline';
           }
         } else {
-           // Dispositivos creados manualmente o sin credenciales locales
-           status = device.status as 'online' | 'offline' | 'error';
+           status = (device as any).status;
         }
 
-        // Guardar las estadísticas
         const statsEntry = new DeviceStats({
           deviceId: device._id,
           timestamp: new Date(),
@@ -107,12 +96,26 @@ export const startScheduler = () => {
           status,
           dps,
         });
-
         await statsEntry.save();
       }
-      console.log(`[Scheduler] Recolección completada. Guardados ${devices.length} registros.`);
+      console.log(`[Scheduler] Recolección completada.`);
     } catch (error) {
-      console.error('[Scheduler] Fallo durante la recolección periódica:', error);
+      console.error('[Scheduler] Fallo estadísticas:', error);
     }
-  }, INTERVAL);
+  }, STATS_INTERVAL);
+
+  setInterval(async () => {
+    console.log('[Scheduler] Sincronizando historial de eventos con Tuya Cloud...');
+    try {
+      const devices = await Device.find({ 'attributes.tuyaId': { $exists: true } }).lean();
+      for (const device of devices) {
+        const res = await syncDeviceLogs(device._id.toString());
+        if (res.success && (res.count ?? 0) > 0) {
+          console.log(`[Scheduler] [${device.name}] +${res.count} nuevos eventos.`);
+        }
+      }
+    } catch (error) {
+      console.error('[Scheduler] Fallo global sincronización logs:', error);
+    }
+  }, LOGS_INTERVAL);
 };

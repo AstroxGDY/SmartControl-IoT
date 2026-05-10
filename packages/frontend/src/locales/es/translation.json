@@ -6,7 +6,8 @@
     "help": "Ayuda",
     "logout": "Cerrar Sesión",
     "toggle_dark": "Activar modo oscuro",
-    "toggle_light": "Activar modo claro"
+    "toggle_light": "Activar modo claro",
+    "rules": "Reglas Inteligentes"
   },
   "dashboard": {
     "title": "Panel de Control",
@@ -239,5 +240,24 @@
     "reminder": "Recordatorio: La seguridad absoluta no existe. Mantén tus dispositivos actualizados y en redes aisladas.",
     "analyzing": "Analizando seguridad...",
     "unexpanded": "Sin analizar"
+  },
+  "rules": {
+    "title": "Reglas Inteligentes",
+    "subtitle": "Programa acciones automáticas y escenarios personalizados",
+    "tap_to_run": "Escenas Manuales",
+    "automation": "Automatizaciones",
+    "trigger": "Ejecutar",
+    "delete": "Eliminar",
+    "new_rule": "Nueva Regla",
+    "no_rules": "No hay reglas configuradas aún.",
+    "create_desc": "Configura una acción automática basada en un evento.",
+    "status_active": "Activa",
+    "status_inactive": "Inactiva",
+    "delete_confirm": "¿Eliminar esta regla?",
+    "delete_confirm_desc": "La automatización dejará de funcionar inmediatamente.",
+    "execute_success": "Regla ejecutada con éxito",
+    "execute_error": "Error al ejecutar la regla",
+    "delete_success": "Regla eliminada",
+    "delete_error": "Error al eliminar la regla"
   }
 }

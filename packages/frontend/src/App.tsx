@@ -9,6 +9,7 @@ import BluetoothManager from './pages/BluetoothManager';
 import DeviceAnalysis from './pages/DeviceAnalysis';
 import DeviceStatistics from './pages/DeviceStatistics';
 import Security from './pages/Security';
+import SmartRules from './pages/SmartRules';
 
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="analysis" element={<DeviceAnalysis />} />
           <Route path="statistics" element={<DeviceStatistics />} />
           <Route path="security" element={<Security />} />
+          <Route path="rules" element={<SmartRules />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
