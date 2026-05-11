@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Cpu, Hash, Power, PowerOff, Loader2, Wifi, Trash2, Pencil, Check, Upload, AlertCircle, Shield } from 'lucide-react';
+import { X, Cpu, Hash, Power, PowerOff, Loader2, Wifi, Trash2, Pencil, Check, Upload, AlertCircle, Shield, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PRESET_ICONS } from '../config/deviceIcons';
 import { getCapabilitiesForCategory } from '../utils/deviceCapabilities';
@@ -12,7 +12,7 @@ interface DeviceDetailsModalProps {
 }
 
 export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetailsModalProps) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     
     // ── Hooks ──
@@ -22,6 +22,7 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
     const [isOffline, setIsOffline] = useState(device?.status !== 'online');
     const [isToggling, setIsToggling] = useState(false);
     const [unlinkStep, setUnlinkStep] = useState<'idle' | 'confirm' | 'deleting'>('idle');
+    const [showLocalKey, setShowLocalKey] = useState(false);
 
     // Edit states
     const [isEditing, setIsEditing] = useState(false);
@@ -384,9 +385,20 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                                         <p className="text-[10px] text-gray-400 font-black uppercase mb-1">{t('device_details.local_ip')}</p>
                                         <p className="font-mono text-sm font-bold text-slate-700 dark:text-slate-300">{metadata.ip || 'N/A'}</p>
                                     </div>
-                                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                                        <p className="text-[10px] text-gray-400 font-black uppercase mb-1">{t('device_details.local_key')}</p>
-                                        <p className="font-mono text-[9px] font-bold text-purple-600 dark:text-purple-400 truncate">{metadata.localKey || 'Falta'}</p>
+                                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800 relative group">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <p className="text-[10px] text-gray-400 font-black uppercase">{t('device_details.local_key')}</p>
+                                            <button 
+                                                onClick={() => setShowLocalKey(!showLocalKey)}
+                                                className="text-slate-400 hover:text-purple-500 transition-colors"
+                                                title={showLocalKey ? t('common.hide') : t('common.show')}
+                                            >
+                                                {showLocalKey ? <EyeOff size={12} /> : <Eye size={12} />}
+                                            </button>
+                                        </div>
+                                        <p className="font-mono text-[9px] font-bold text-purple-600 dark:text-purple-400 truncate">
+                                            {showLocalKey ? (metadata.localKey || 'Falta') : '••••••••••••••••'}
+                                        </p>
                                     </div>
                                 </div>
 
@@ -397,11 +409,16 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                                 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {getCapabilitiesForCategory(device.type).dps.map(dp => {
-                                        const value = liveDps[dp.code];
-                                        // Si el valor no existe en liveDps, no lo mostramos (o mostramos fallback)
-                                        if (value === undefined) return null;
+                                        const rawValue = liveDps[dp.code];
+                                        if (rawValue === undefined) return null;
+
+                                        // Formatear valor si hay divisor
+                                        const value = (dp.divider && typeof rawValue === 'number') 
+                                            ? (rawValue / dp.divider).toFixed(dp.divider >= 100 ? 2 : 1) 
+                                            : rawValue;
 
                                         const sendDPCommand = async (newVal: any) => {
+                                            if (dp.readOnly) return;
                                             try {
                                                 const response = await fetch(`http://localhost:3000/devices/${device._id}/command`, {
                                                     method: 'POST',
@@ -415,6 +432,21 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                                                 console.error(e);
                                             }
                                         };
+
+                                        if (dp.readOnly) {
+                                            return (
+                                                <div key={dp.code} className="p-4 rounded-2xl bg-gray-50/50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 flex flex-col gap-1 transition-all group hover:border-slate-300 dark:hover:border-slate-600">
+                                                    <div className="flex justify-between items-center opacity-60">
+                                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{dp.name}</span>
+                                                        <span className="text-[8px] font-bold text-slate-400">INFO</span>
+                                                    </div>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-xl font-black text-slate-700 dark:text-slate-200">{value}</span>
+                                                        {dp.unit && <span className="text-[10px] font-bold text-slate-400 uppercase">{dp.unit}</span>}
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
 
                                         return (
                                             <div key={dp.code} className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col gap-3 hover:border-purple-200 dark:hover:border-purple-900/50 transition-all">
@@ -434,14 +466,14 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                                                     ) : dp.type === 'integer' ? (
                                                         <div className="w-full space-y-2">
                                                             <div className="flex justify-between">
-                                                                <span className="text-xs font-bold text-purple-600 dark:text-purple-400">{value}</span>
+                                                                <span className="text-xs font-bold text-purple-600 dark:text-purple-400">{value}{dp.unit}</span>
                                                                 <span className="text-[9px] text-slate-400">{dp.min} - {dp.max}</span>
                                                             </div>
                                                             <input 
                                                                 type="range" 
                                                                 min={dp.min} 
                                                                 max={dp.max} 
-                                                                value={value}
+                                                                value={rawValue}
                                                                 onChange={(e) => setLiveDps(prev => ({ ...prev, [dp.code]: parseInt(e.target.value) }))}
                                                                 onMouseUp={(e: any) => sendDPCommand(parseInt(e.target.value))}
                                                                 onTouchEnd={(e: any) => sendDPCommand(parseInt(e.target.value))}
@@ -457,7 +489,7 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                                                             {dp.values?.map(v => <option key={v} value={v}>{v.toUpperCase()}</option>)}
                                                         </select>
                                                     ) : (
-                                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{String(value)}</span>
+                                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{String(value)} {dp.unit}</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -514,7 +546,7 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                                     <div className="flex items-center justify-between mb-2 px-1">
                                         <div className="flex flex-col">
                                             <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('device_details.recent')}</h4>
-                                            <span className="text-[9px] font-bold text-slate-400 opacity-60">Sincronizado con base de datos</span>
+                                            <span className="text-[9px] font-bold text-slate-400 opacity-60">{t('device_details.history_sync_info')}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <button 
@@ -561,10 +593,10 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                                                 >
                                                     <div className="w-14 sm:w-16 shrink-0 text-center border-r border-slate-100 dark:border-slate-800 pr-3 sm:pr-4 flex flex-col justify-center">
                                                         <p className="text-[10px] sm:text-[11px] font-black text-purple-600 dark:text-purple-400 uppercase leading-none">
-                                                            {date.toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
+                                                            {date.toLocaleDateString(i18n.language || 'es', { day: '2-digit', month: 'short' })}
                                                         </p>
                                                         <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 mt-1.5 opacity-60">
-                                                            {date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                                                            {date.toLocaleTimeString(i18n.language || 'es', { hour: '2-digit', minute: '2-digit' })}
                                                         </p>
                                                     </div>
                                                     

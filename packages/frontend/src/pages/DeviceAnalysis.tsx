@@ -171,16 +171,17 @@ function ScrollIndicator({ dir, active }: { dir: 'up' | 'down'; active: boolean 
 
 // ─── Action Labels ────────────────────────────────────────────────────
 function ActionLabels({ actions }: { actions: MouseActions }) {
+  const { t } = useTranslation();
   const labels: { key: keyof MouseActions; label: string; color: string }[] = [
-    { key: 'leftClick',   label: 'Click Izquierdo', color: 'bg-[#A855F7]/20 text-[#A855F7]' },
-    { key: 'rightClick',  label: 'Click Derecho',   color: 'bg-[#EC4899]/20 text-[#EC4899]' },
-    { key: 'middleClick', label: 'Click Central',   color: 'bg-amber-400/20 text-amber-400' },
-    { key: 'scrollUp',    label: 'Scroll ↑',        color: 'bg-amber-400/20 text-amber-400' },
-    { key: 'scrollDown',  label: 'Scroll ↓',        color: 'bg-amber-400/20 text-amber-400' },
-    { key: 'moveUp',      label: 'Mover ↑',         color: 'bg-blue-400/20 text-blue-400' },
-    { key: 'moveDown',    label: 'Mover ↓',         color: 'bg-blue-400/20 text-blue-400' },
-    { key: 'moveLeft',    label: 'Mover ←',         color: 'bg-blue-400/20 text-blue-400' },
-    { key: 'moveRight',   label: 'Mover →',         color: 'bg-blue-400/20 text-blue-400' },
+    { key: 'leftClick',   label: t('analysis.actions.left'), color: 'bg-[#A855F7]/20 text-[#A855F7]' },
+    { key: 'rightClick',  label: t('analysis.actions.right'),   color: 'bg-[#EC4899]/20 text-[#EC4899]' },
+    { key: 'middleClick', label: t('analysis.actions.middle'),   color: 'bg-amber-400/20 text-amber-400' },
+    { key: 'scrollUp',    label: t('analysis.actions.scroll_up'),        color: 'bg-amber-400/20 text-amber-400' },
+    { key: 'scrollDown',  label: t('analysis.actions.scroll_down'),  color: 'bg-amber-400/20 text-amber-400' },
+    { key: 'moveUp',      label: t('analysis.actions.move_up'),         color: 'bg-blue-400/20 text-blue-400' },
+    { key: 'moveDown',    label: t('analysis.actions.move_down'),    color: 'bg-blue-400/20 text-blue-400' },
+    { key: 'moveLeft',    label: t('analysis.actions.move_left'),    color: 'bg-blue-400/20 text-blue-400' },
+    { key: 'moveRight',   label: t('analysis.actions.move_right'),   color: 'bg-blue-400/20 text-blue-400' },
   ];
 
   const activeLabels = labels.filter(l => actions[l.key]);
@@ -188,7 +189,7 @@ function ActionLabels({ actions }: { actions: MouseActions }) {
   return (
     <div className="flex flex-wrap gap-2 justify-center min-h-[32px]">
       {activeLabels.length === 0 ? (
-        <span className="text-sm text-slate-500 italic">Sin actividad</span>
+        <span className="text-sm text-slate-500 italic">{t('analysis.actions.no_activity')}</span>
       ) : (
         activeLabels.map(l => (
           <span key={l.key} className={`px-3 py-1 rounded-full text-xs font-bold ${l.color} transition-all animate-in fade-in zoom-in duration-150`}>
@@ -338,7 +339,7 @@ export default function DeviceAnalysis() {
       await fetch(`${API_URL}/devices/bluetooth/pair`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: selectedDevice.name || 'Ratón Bluetooth', id: selectedDevice.id, type: 'bluetooth-mouse' })
+        body: JSON.stringify({ name: selectedDevice.name || t('common.generic') + ' Bluetooth', id: selectedDevice.id, type: 'bluetooth-mouse' })
       });
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
@@ -352,10 +353,10 @@ export default function DeviceAnalysis() {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-extrabold bg-gradient-to-r from-[#A855F7] to-[#EC4899] bg-clip-text text-transparent">
-            {t('analysis.title', 'Análisis en Vivo')}
+            {t('analysis.title')}
           </h1>
           <p className="text-slate-500 mt-2">
-            {t('analysis.subtitle', 'Monitoriza eventos de hardware y métricas en tiempo real')}
+            {t('analysis.subtitle')}
           </p>
         </div>
         <button
@@ -364,7 +365,7 @@ export default function DeviceAnalysis() {
           disabled={loading}
         >
           <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
-          <span>{t('analysis.refresh', 'Escanear')}</span>
+          <span>{t('analysis.refresh')}</span>
         </button>
       </div>
 
@@ -373,12 +374,12 @@ export default function DeviceAnalysis() {
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <Activity className="text-[#A855F7]" />
-              Dispositivos Bluetooth
+              {t('analysis.devices_title')}
             </h2>
             
             {devices.length === 0 ? (
               <div className="text-center py-8 text-slate-500">
-                {loading ? 'Escaneando kernel...' : 'No se encontraron ratones BT'}
+                {loading ? t('analysis.scanning_kernel') : t('analysis.no_mice')}
               </div>
             ) : (
               <ul className="space-y-3">
@@ -400,7 +401,7 @@ export default function DeviceAnalysis() {
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#A855F7] opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-[#A855F7]"></span>
                           </span>
-                          Sniffing activo
+                          {t('analysis.sniffing_active')}
                         </div>
                       )}
                     </button>
@@ -428,7 +429,7 @@ export default function DeviceAnalysis() {
                   }`}
                 >
                   {isSaved ? <Check size={16} /> : <Database size={16} />}
-                  {isSaved ? 'Añadido' : 'Guardar en BD'}
+                  {isSaved ? t('analysis.added') : t('analysis.save_db')}
                 </button>
               </div>
 
@@ -441,17 +442,17 @@ export default function DeviceAnalysis() {
                   </div>
                   <div className="flex items-center gap-2 text-slate-500 mb-1">
                     <Battery size={18} className="text-emerald-500" />
-                    <span className="font-medium text-sm">Batería</span>
+                    <span className="font-medium text-sm">{t('analysis.battery')}</span>
                   </div>
                   <div className="text-3xl font-extrabold flex items-baseline gap-1">
                     {batteryStatus === 'ok' ? data.battery : '--'}
                     <span className="text-base text-slate-400 font-medium">%</span>
                   </div>
                   {batteryStatus === 'loading' && (
-                    <p className="text-xs text-blue-500 mt-1 animate-pulse">Consultando PnP...</p>
+                    <p className="text-xs text-blue-500 mt-1 animate-pulse">{t('analysis.querying_pnp')}</p>
                   )}
                   {batteryStatus === 'error' && (
-                    <p className="text-xs text-red-400 mt-1">No reportada</p>
+                    <p className="text-xs text-red-400 mt-1">{t('analysis.not_reported')}</p>
                   )}
                 </div>
 
@@ -462,13 +463,13 @@ export default function DeviceAnalysis() {
                   </div>
                   <div className="flex items-center gap-2 text-slate-500 mb-1">
                     <MousePointerClick size={18} className="text-[#EC4899]" />
-                    <span className="font-medium text-sm">APM</span>
+                    <span className="font-medium text-sm">{t('analysis.apm')}</span>
                   </div>
                   <div className="text-3xl font-extrabold flex items-baseline gap-1">
                     {data.clicksPerMin}
-                    <span className="text-base text-slate-400 font-medium">clics/min</span>
+                    <span className="text-base text-slate-400 font-medium">{t('analysis.clicks_min')}</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">Total: {data.clicks}</p>
+                  <p className="text-xs text-slate-400 mt-1">{t('devices_page.total', { count: data.clicks })}</p>
                 </div>
 
                 {/* Distance */}
@@ -478,7 +479,7 @@ export default function DeviceAnalysis() {
                   </div>
                   <div className="flex items-center gap-2 text-slate-500 mb-1">
                     <Move size={18} className="text-blue-500" />
-                    <span className="font-medium text-sm">Distancia</span>
+                    <span className="font-medium text-sm">{t('analysis.distance')}</span>
                   </div>
                   <div className="text-3xl font-extrabold flex items-baseline gap-1">
                     {(data.distance / 1000).toFixed(2)}
@@ -491,7 +492,7 @@ export default function DeviceAnalysis() {
               <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div className="flex items-center gap-3 text-slate-500 mb-4">
                   <Activity size={20} className="text-amber-500" />
-                  <span className="font-medium">Actividad en Tiempo Real</span>
+                  <span className="font-medium">{t('analysis.live_activity')}</span>
                 </div>
                 <div className="flex flex-col items-center gap-6">
                   <MouseVisualizer actions={mouseActions} />
@@ -502,8 +503,8 @@ export default function DeviceAnalysis() {
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl min-h-[400px]">
               <MousePointerClick size={48} className="mb-4 opacity-50" />
-              <p className="text-lg font-medium">Selecciona un dispositivo</p>
-              <p className="text-sm">Inicia la captura para ver métricas en tiempo real</p>
+              <p className="text-lg font-medium">{t('analysis.select_device')}</p>
+              <p className="text-sm">{t('analysis.start_capture')}</p>
             </div>
           )}
         </div>

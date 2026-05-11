@@ -246,7 +246,7 @@ export default function Settings() {
                 <div className="flex items-center gap-3 text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 px-4 py-2 rounded-2xl border border-cyan-100 dark:border-cyan-900/30">
                   <Info size={18} />
                   <p className="text-[10px] font-bold leading-tight max-w-[250px]">
-                    Las claves se guardarán cifradas localmente con la seguridad de tu SO.
+                    {t('settings.keys_notice')}
                   </p>
                 </div>
 
@@ -258,7 +258,7 @@ export default function Settings() {
                   }`}
                 >
                   {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                  {isSaving ? '...' : status === 'success' ? 'Guardado' : 'Guardar Llaves'}
+                  {isSaving ? '...' : status === 'success' ? t('settings.saved') : t('settings.save_keys')}
                 </button>
               </div>
             </form>
@@ -278,30 +278,28 @@ export default function Settings() {
                 <Shield size={24} />
               </div>
               <div>
-                <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter leading-none">Información Legal</h3>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Transparencia y Privacidad</p>
+                <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter leading-none">{t('settings.legal_info')}</h3>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">{t('settings.transparency_privacy')}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
-                <h4 className="text-xs font-black uppercase tracking-widest text-indigo-500">Aviso Legal</h4>
+                <h4 className="text-xs font-black uppercase tracking-widest text-indigo-500">{t('settings.legal_notice')}</h4>
                 <div className="text-sm text-gray-500 dark:text-gray-400 space-y-2 leading-relaxed">
-                  <p><strong>SmartControl IoT</strong> es un proyecto desarrollado como Trabajo de Fin de Grado (TFG).</p>
-                  <p>Este software se proporciona "tal cual", sin garantías de ningún tipo. El uso de la aplicación para el control de dispositivos domésticos es responsabilidad exclusiva del usuario.</p>
+                  <p>{t('settings.legal_text')}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h4 className="text-xs font-black uppercase tracking-widest text-emerald-500">Privacidad de Datos</h4>
+                <h4 className="text-xs font-black uppercase tracking-widest text-emerald-500">{t('settings.privacy_title')}</h4>
                 <div className="text-sm text-gray-500 dark:text-gray-400 space-y-2 leading-relaxed">
-                  <p>Toda la información (Local Keys, IDs de dispositivo y logs) se almacena de forma <strong>local</strong> en tu sistema mediante una base de datos MongoDB.</p>
-                  <p>La aplicación no redirige datos a servidores de terceros, excepto las llamadas necesarias a la API oficial de Tuya Cloud para la gestión de dispositivos.</p>
+                  <p>{t('settings.privacy_text')}</p>
                 </div>
               </div>
 
               <div className="md:col-span-2 pt-4 border-t border-gray-50 dark:border-slate-800">
-                <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Atribuciones y Licencias</h4>
+                <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">{t('settings.attributions')}</h4>
                 <div className="flex flex-wrap gap-2">
                   {['React', 'Electron', 'Node.js', 'MongoDB', 'Tuya SDK', 'Lucide Icons', 'Fastify', 'Framer Motion'].map((lib) => (
                     <span key={lib} className="px-3 py-1 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-[10px] font-black uppercase tracking-widest rounded-lg">
@@ -310,7 +308,7 @@ export default function Settings() {
                   ))}
                 </div>
                 <p className="text-[9px] text-gray-400 mt-4 font-medium italic">
-                  © 2026 SmartControl IoT Project - Universidad Complutense de Madrid. Todos los derechos reservados bajo licencia académica.
+                  {t('settings.copyright')}
                 </p>
               </div>
             </div>
@@ -341,7 +339,7 @@ export default function Settings() {
                   onClick={() => setShowTerms(false)}
                   className="w-full py-4 text-gray-400 dark:text-gray-500 font-bold hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
-                  Cancelar
+                  {t('settings.cancel')}
                 </button>
               </div>
            </div>

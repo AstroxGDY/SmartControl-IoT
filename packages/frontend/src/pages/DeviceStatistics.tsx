@@ -54,10 +54,11 @@ interface HistoryPoint {
     timestamp: string;
     batteryLevel?: number;
     status: string;
+    dps?: any;
 }
 
 export default function DeviceStatistics() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [data, setData] = useState<GlobalStatsData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -139,10 +140,10 @@ export default function DeviceStatistics() {
             const date = new Date(point.timestamp);
             if (isNaN(date.getTime())) return null;
             return {
-                time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                time: date.toLocaleTimeString(i18n.language || 'es', { hour: '2-digit', minute: '2-digit' }),
                 battery: point.batteryLevel,
                 consumption: getConsumption(point.dps),
-                fullDate: date.toLocaleString()
+                fullDate: date.toLocaleString(i18n.language || 'es')
             };
         } catch (e) {
             return null;
@@ -159,8 +160,8 @@ export default function DeviceStatistics() {
                 <div className="bg-white dark:bg-slate-900 p-4 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-2xl">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{payload[0].payload.fullDate}</p>
                     <p className={`text-sm font-black ${isConsumption ? 'text-amber-500' : 'text-blue-600 dark:text-blue-400'}`}>
-                        {isConsumption ? 'Consumo: ' : 'Batería: '}
-                        <span className="text-lg">{payload[0].value}{isConsumption ? ' W' : '%'}</span>
+                        {isConsumption ? t('statistics.power_consumption') : t('statistics.battery_level')}
+                        <span className="text-lg">: {payload[0].value}{isConsumption ? ' W' : '%'}</span>
                     </p>
                 </div>
             );
@@ -176,10 +177,10 @@ export default function DeviceStatistics() {
                         <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
                             <BarChart className="text-white" size={24} />
                         </div>
-                        {t('statistics.title', 'Análisis de Datos')}
+                        {t('statistics.title')}
                     </h1>
                     <p className="text-slate-400 mt-2 font-medium">
-                        {t('statistics.subtitle', 'Monitorización histórica y métricas de rendimiento IoT')}
+                        {t('statistics.subtitle')}
                     </p>
                 </div>
                 
@@ -200,7 +201,7 @@ export default function DeviceStatistics() {
                                 <Database size={16} />
                             </div>
                             <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Total</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t('statistics.records')}</p>
                                 <p className="text-lg font-black text-slate-700 dark:text-white">{data.length}</p>
                             </div>
                         </div>
@@ -214,7 +215,7 @@ export default function DeviceStatistics() {
                         <div className="w-20 h-20 rounded-full border-4 border-blue-100 dark:border-blue-900/30 border-t-blue-500 animate-spin" />
                         <Database size={32} className="absolute inset-0 m-auto text-blue-500 animate-pulse" />
                     </div>
-                    <p className="font-black uppercase tracking-[0.3em] text-xs animate-pulse">Sincronizando analíticas...</p>
+                    <p className="font-black uppercase tracking-[0.3em] text-xs animate-pulse">{t('statistics.syncing')}</p>
                 </div>
             ) : error ? (
                 <div className="bg-red-50 dark:bg-red-900/10 text-red-600 p-8 rounded-3xl border border-red-100 dark:border-red-900/30 flex items-center gap-6 max-w-2xl mx-auto shadow-xl">
@@ -222,7 +223,7 @@ export default function DeviceStatistics() {
                         <AlertCircle size={32} />
                     </div>
                     <div>
-                        <h3 className="font-black uppercase text-sm tracking-widest mb-1">Error de conexión</h3>
+                        <h3 className="font-black uppercase text-sm tracking-widest mb-1">{t('statistics.conn_error')}</h3>
                         <p className="text-sm opacity-80">{error}</p>
                     </div>
                 </div>
@@ -230,7 +231,7 @@ export default function DeviceStatistics() {
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* Master List (Sidebar) */}
                     <aside className="lg:w-80 flex-shrink-0 space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 px-2">Mis Dispositivos</h3>
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 px-2">{t('statistics.my_devices')}</h3>
                         {data.map(({ device, stats }) => (
                             <button
                                 key={device._id}
@@ -299,7 +300,7 @@ export default function DeviceStatistics() {
                                                                 <Smartphone size={12} /> {selectedDeviceData.device.connectionType}
                                                             </span>
                                                             <span className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-xl border border-slate-100 dark:border-slate-700 flex items-center gap-2">
-                                                                <Clock size={12} /> Last Sync: {new Date().toLocaleTimeString()}
+                                                                <Clock size={12} /> {t('statistics.last_sync')}: {new Date().toLocaleTimeString(i18n.language || 'es')}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -307,7 +308,7 @@ export default function DeviceStatistics() {
 
                                                 <div className="flex gap-4">
                                                     <div className="text-right">
-                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Registros</p>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('statistics.records')}</p>
                                                         <p className="text-3xl font-black text-slate-800 dark:text-white leading-none">{selectedDeviceData.stats.totalRecords}</p>
                                                     </div>
                                                 </div>
@@ -322,14 +323,14 @@ export default function DeviceStatistics() {
                                                     <div>
                                                         <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
                                                             <TrendingUp size={18} className={consumptionData.length > 0 && batteryData.length === 0 ? "text-amber-500" : "text-blue-500"} />
-                                                            {consumptionData.length > 0 && batteryData.length === 0 ? 'Consumo Eléctrico (W)' : 'Nivel de Batería (%)'}
+                                                            {consumptionData.length > 0 && batteryData.length === 0 ? t('statistics.power_consumption') : t('statistics.battery_level')}
                                                         </h3>
-                                                        <p className="text-[10px] text-slate-400 font-bold mt-1">Evolución en las últimas 100 horas</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold mt-1">{t('statistics.history_evolution')}</p>
                                                     </div>
                                                     
                                                     {batteryData.length > 0 && selectedDeviceData.stats.avgBattery && (
                                                         <div className="bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-2xl border border-blue-100 dark:border-blue-800/30">
-                                                            <span className="text-[9px] font-black text-blue-500 uppercase block leading-none mb-1">Promedio</span>
+                                                            <span className="text-[9px] font-black text-blue-500 uppercase block leading-none mb-1">{t('statistics.average')}</span>
                                                             <span className="text-lg font-black text-blue-600 dark:text-blue-400">{Math.round(selectedDeviceData.stats.avgBattery)}%</span>
                                                         </div>
                                                     )}
@@ -381,8 +382,8 @@ export default function DeviceStatistics() {
                                                     ) : (
                                                         <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800/30 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-400 p-8 text-center">
                                                             <Battery size={48} className="mb-4 opacity-20" />
-                                                            <p className="text-sm font-bold uppercase tracking-widest">Sin datos históricos suficientes</p>
-                                                            <p className="text-[10px] mt-1">Este dispositivo no reporta nivel de batería ni consumo energético en tiempo real.</p>
+                                                            <p className="text-sm font-bold uppercase tracking-widest">{t('statistics.no_history')}</p>
+                                                            <p className="text-[10px] mt-1">{t('statistics.no_history_desc')}</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -394,10 +395,10 @@ export default function DeviceStatistics() {
                                                     <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mb-4">
                                                         <TrendingUp size={24} />
                                                     </div>
-                                                    <h4 className="text-sm font-black uppercase tracking-widest opacity-80 mb-2">Estado Actual</h4>
+                                                    <h4 className="text-sm font-black uppercase tracking-widest opacity-80 mb-2">{t('statistics.current_status')}</h4>
                                                     <p className="text-4xl font-black uppercase tracking-tighter leading-none mb-4">{selectedDeviceData.stats.latestStatus}</p>
                                                     <div className="flex items-center gap-2 text-xs font-bold bg-white/10 w-fit px-3 py-1.5 rounded-xl border border-white/10">
-                                                        <Activity size={14} /> Sistema en línea
+                                                        <Activity size={14} /> {t('statistics.system_online')}
                                                     </div>
                                                 </div>
 
@@ -407,22 +408,22 @@ export default function DeviceStatistics() {
                                                             <Info size={20} />
                                                         </div>
                                                         <div>
-                                                            <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Información</h4>
-                                                            <p className="text-[10px] text-slate-400 font-bold uppercase">Detalles técnicos</p>
+                                                            <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">{t('statistics.info')}</h4>
+                                                            <p className="text-[10px] text-slate-400 font-bold uppercase">{t('statistics.technical_details')}</p>
                                                         </div>
                                                     </div>
                                                     
                                                     <div className="space-y-4">
                                                         <div className="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800">
-                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Categoría</span>
+                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('statistics.category')}</span>
                                                             <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{selectedDeviceData.device.type}</span>
                                                         </div>
                                                         <div className="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800">
-                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conexión</span>
+                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('statistics.connection')}</span>
                                                             <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{selectedDeviceData.device.connectionType}</span>
                                                         </div>
                                                         <div className="flex justify-between items-center py-3">
-                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID BBDD</span>
+                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('statistics.db_id')}</span>
                                                             <span className="text-[10px] font-mono text-slate-300 truncate max-w-[100px]">{selectedDeviceId}</span>
                                                         </div>
                                                     </div>
@@ -435,8 +436,8 @@ export default function DeviceStatistics() {
                                         <div className="w-24 h-24 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center mb-8 border border-slate-100 dark:border-slate-800 opacity-50">
                                             <Smartphone size={48} className="text-slate-300" />
                                         </div>
-                                        <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none mb-2">Selecciona un dispositivo</h3>
-                                        <p className="text-slate-400 font-medium">Elige un dispositivo de la lista para visualizar su análisis detallado</p>
+                                        <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none mb-2">{t('statistics.select_device')}</h3>
+                                        <p className="text-slate-400 font-medium">{t('statistics.select_device_desc')}</p>
                                     </div>
                                 )}
                             </motion.div>

@@ -204,10 +204,10 @@ const SmartRules = () => {
         fetchRules();
         setSuccessMsg(t('rules.execute_success'));
       } else {
-        setError(data.msg || 'Error al crear la regla');
+        setError(data.msg || t('rules.rule_creation_error'));
       }
     } catch (err) {
-      setError('Error de conexión');
+      setError(t('rules.connection_error'));
     } finally {
       setIsCreating(false);
     }
@@ -270,7 +270,7 @@ const SmartRules = () => {
         <div className="flex flex-col items-center justify-center h-64">
           <Loader2 className="animate-spin text-purple-500 mb-4" size={48} />
           <p className="text-slate-500 dark:text-slate-400 animate-pulse font-medium">
-            Sincronizando reglas con Tuya Cloud...
+            {t('rules.syncing')}
           </p>
         </div>
       ) : rules.length === 0 ? (
@@ -370,13 +370,13 @@ const SmartRules = () => {
                 <form onSubmit={handleCreateRule} className="space-y-6">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                      Nombre de la regla
+                      {t('rules.modal_title')}
                     </label>
                     <input
                       type="text"
                       value={newRuleName}
                       onChange={(e) => setNewRuleName(e.target.value)}
-                      placeholder="Ej: Modo Cine, Luces Off..."
+                      placeholder={t('rules.modal_placeholder')}
                       className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-purple-500 outline-none transition-all dark:text-white"
                       required
                     />
@@ -384,7 +384,7 @@ const SmartRules = () => {
 
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
-                      ¿Qué quieres automatizar?
+                      {t('rules.modal_question')}
                     </label>
                     <div className="grid grid-cols-2 gap-4">
                       <button 
@@ -414,26 +414,26 @@ const SmartRules = () => {
                                 onClick={() => setTriggerType('device')}
                                 className={`flex-1 py-2 rounded-xl text-xs font-bold ${triggerType === 'device' ? 'bg-slate-700 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}
                             >
-                                DISPOSITIVO
+                                {t('rules.trigger_device')}
                             </button>
                             <button 
                                 type="button"
                                 onClick={() => setTriggerType('timer')}
                                 className={`flex-1 py-2 rounded-xl text-xs font-bold ${triggerType === 'timer' ? 'bg-slate-700 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}
                             >
-                                HORARIO
+                                {t('rules.trigger_timer')}
                             </button>
                         </div>
 
                         {triggerType === 'device' ? (
                             <>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">SI OCURRE ESTO...</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{t('rules.if_happens')}</label>
                                 <select
                                     value={conditionDevice}
                                     onChange={(e) => setConditionDevice(e.target.value)}
                                     className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white"
                                 >
-                                    <option value="">Selecciona dispositivo disparador...</option>
+                                    <option value="">{t('rules.select_trigger')}</option>
                                     {devices.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
                                 </select>
                                 {conditionDevice && (
@@ -476,7 +476,7 @@ const SmartRules = () => {
                             </>
                         ) : (
                             <div className="space-y-4">
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">PROGRAMAR PARA...</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{t('rules.schedule_for')}</label>
                                 <div className="flex items-center gap-4">
                                     <Clock size={20} className="text-slate-400" />
                                     <input 
@@ -508,14 +508,14 @@ const SmartRules = () => {
                   )}
 
                   <div className="space-y-4 p-4 bg-purple-50/50 dark:bg-purple-900/10 rounded-2xl border border-purple-100 dark:border-purple-900/30">
-                    <label className="block text-xs font-bold text-purple-500 uppercase tracking-widest mb-1">HACER ESTO...</label>
+                    <label className="block text-xs font-bold text-purple-500 uppercase tracking-widest mb-1">{t('rules.do_this')}</label>
                     <select
                       value={selectedDevice}
                       onChange={(e) => setSelectedDevice(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white"
                       required
                     >
-                      <option value="">Elegir dispositivo a controlar...</option>
+                      <option value="">{t('rules.select_control')}</option>
                       {devices.map(d => (
                         <option key={d._id} value={d._id}>{d.name}</option>
                       ))}
@@ -574,7 +574,7 @@ const SmartRules = () => {
                     className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-slate-400 text-white font-bold py-4 rounded-2xl shadow-lg shadow-purple-500/30 transition-all flex items-center justify-center gap-2"
                   >
                     {isCreating ? <Loader2 size={20} className="animate-spin" /> : <Zap size={20} />}
-                    {isCreating ? 'Procesando...' : ruleType === 'scene' ? 'Crear Escena Manual' : 'Crear Automatización'}
+                    {isCreating ? t('rules.processing') : ruleType === 'scene' ? t('rules.create_scene') : t('rules.create_automation')}
                   </button>
                 </form>
               </div>

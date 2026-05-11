@@ -103,16 +103,16 @@ export default function Security() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-            {t('security.title', 'Auditoría de Seguridad')}
+            {t('security.title')}
           </h1>
           <p className="text-slate-500 mt-2 font-medium">
-            Monitoriza vulnerabilidades conocidas (CVE) y recibe consejos preventivos para tus dispositivos IoT.
+            {t('security.subtitle')}
           </p>
         </div>
         <div className="flex gap-4">
           <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <Shield className="text-indigo-500" size={20} />
-            <span className="text-sm font-bold">{stats.vulnerable} / {stats.total} {t('security.vulnerable', 'Vulnerables')}</span>
+            <span className="text-sm font-bold">{stats.vulnerable} / {stats.total} {t('security.vulnerable')}</span>
           </div>
         </div>
       </div>
@@ -122,17 +122,17 @@ export default function Security() {
         <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-3xl text-white shadow-xl shadow-indigo-500/20 group hover:scale-[1.02] transition-transform cursor-default">
            <Shield size={32} className="mb-4 opacity-80" />
            <div className="text-4xl font-black">{stats.total}</div>
-           <div className="text-indigo-100 font-medium">Dispositivos Protegidos</div>
+           <div className="text-indigo-100 font-medium">{t('security.total_protected')}</div>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:border-orange-500/50 transition-colors">
            <AlertTriangle size={32} className="mb-4 text-orange-500" />
            <div className="text-4xl font-black text-slate-900 dark:text-white">{stats.vulnerable}</div>
-           <div className="text-slate-500 font-medium">Vulnerabilidades Detectadas</div>
+           <div className="text-slate-500 font-medium">{t('security.detected_vulns')}</div>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:border-red-500/50 transition-colors">
            <Zap size={32} className="mb-4 text-red-500" />
            <div className="text-4xl font-black text-slate-900 dark:text-white">{stats.critical}</div>
-           <div className="text-slate-500 font-medium">{t('security.critical_risks', 'Riesgos Críticos (CVSS &gt; 7)')}</div>
+           <div className="text-slate-500 font-medium">{t('security.critical_risks')}</div>
         </div>
       </div>
 
@@ -140,13 +140,13 @@ export default function Security() {
       <div className="space-y-4">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <Lock size={24} className="text-slate-400" />
-          Análisis por Dispositivo
+          {t('security.scan_device')}
         </h2>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
             <RefreshCw className="animate-spin text-indigo-500" size={48} />
-            <p className="text-slate-500 font-medium animate-pulse">Consultando historial de auditoría...</p>
+            <p className="text-slate-500 font-medium animate-pulse">{t('security.analyzing_history')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
@@ -167,7 +167,7 @@ export default function Security() {
                       <div>
                         <h3 className="font-bold text-lg">{device.name}</h3>
                         <div className="flex items-center gap-2 text-xs text-slate-400 mt-1 uppercase tracking-wider font-bold">
-                          <span>{device.attributes.manufacturer || 'Genérico'}</span>
+                          <span>{device.attributes.manufacturer || t('common.generic')}</span>
                           <span>•</span>
                           <span>{device.type}</span>
                         </div>
@@ -181,11 +181,11 @@ export default function Security() {
                                       : 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/30'
                         }`}>
                           {isVulnerable ? <AlertTriangle size={16} /> : <CheckCircle size={16} />}
-                          {isVulnerable ? `${security.total_vulnerabilidades} Vulnerabilidades` : 'Seguro'}
+                          {isVulnerable ? t('security.vulnerabilities_count', { count: security.total_vulnerabilidades }) : t('security.safe')}
                         </div>
                       ) : (
                         <div className="px-4 py-2 rounded-xl text-sm font-bold bg-slate-50 text-slate-400 border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
-                          Sin analizar
+                          {t('security.unexpanded')}
                         </div>
                       )}
 
@@ -194,7 +194,7 @@ export default function Security() {
                           onClick={() => handleScan(device._id)}
                           disabled={scanningId === device._id}
                           className="p-3 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors disabled:opacity-50 shadow-sm"
-                          title="Re-analizar"
+                          title={t('security.reanalyze')}
                         >
                           <RefreshCw size={20} className={scanningId === device._id ? "animate-spin" : ""} />
                         </button>
@@ -217,11 +217,11 @@ export default function Security() {
                         {/* CVEs */}
                         <div className="space-y-4">
                           <h4 className="font-bold text-slate-500 uppercase tracking-widest text-xs flex items-center gap-2">
-                            <Zap size={14} /> Histórico NIST (NVD)
+                            <Zap size={14} /> {t('security.nist_history')}
                           </h4>
                           {security.cves.length === 0 ? (
                             <div className="p-8 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-slate-400 italic">
-                               No se encontraron vulnerabilidades para este modelo en la base de datos oficial.
+                               {t('security.no_vulns')}
                             </div>
                           ) : (
                             <div className="space-y-4">
@@ -253,7 +253,7 @@ export default function Security() {
                         {/* Tips */}
                         <div className="space-y-4">
                           <h4 className="font-bold text-slate-500 uppercase tracking-widest text-xs flex items-center gap-2">
-                            <Info size={14} /> Recomendaciones de Mitigación
+                            <Info size={14} /> {t('security.mitigation_tips')}
                           </h4>
                           <div className="bg-indigo-50 dark:bg-indigo-950/20 p-6 rounded-3xl border border-indigo-100 dark:border-indigo-900/30 space-y-4">
                              {/* Generamos una lista única de consejos de todos los CVEs */}
@@ -273,7 +273,7 @@ export default function Security() {
                                     <CheckCircle size={14} />
                                   </div>
                                   <p className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
-                                    No se requieren acciones inmediatas. Tu dispositivo no presenta vulnerabilidades críticas conocidas.
+                                    {t('security.no_actions')}
                                   </p>
                                </div>
                              )}
@@ -282,7 +282,7 @@ export default function Security() {
                           <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-2xl border border-amber-100 dark:border-amber-900/30 flex items-start gap-3">
                              <Unlock size={18} className="text-amber-500 mt-1 shrink-0" />
                              <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-                               Recordatorio: La seguridad absoluta no existe. Mantén tus dispositivos actualizados y en redes aisladas.
+                               {t('security.reminder')}
                              </p>
                           </div>
                         </div>

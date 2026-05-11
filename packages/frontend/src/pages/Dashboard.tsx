@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { IDevice } from '../../../shared/types';
 
 export default function Dashboard() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [devices, setDevices] = useState<IDevice[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -62,7 +62,7 @@ export default function Dashboard() {
             <header className="mb-8 border-b pb-4 border-gray-100 dark:border-slate-800 flex items-end justify-between">
                 <div>
                     <h1 className="text-4xl font-black text-slate-800 dark:text-slate-100">{t('dashboard.title')}</h1>
-                    <p className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-2">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <p className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-2">{new Date().toLocaleDateString(i18n.language || 'es', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                 </div>
             </header>
 
@@ -109,7 +109,7 @@ export default function Dashboard() {
                                 {Object.entries(typeCounts).map(([type, count]) => (
                                     <div key={type} className="bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl p-4 flex flex-col shadow-sm dark:shadow-none">
                                         <span className="text-[10px] uppercase font-black tracking-wider text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/40 w-fit px-2 py-0.5 rounded-md mb-2 truncate max-w-full">
-                                            {typeof type === 'string' && type !== 'undefined' ? type : 'GENERIC'}
+                                            {typeof type === 'string' && type !== 'undefined' ? type : t('common.generic')}
                                         </span>
                                         <span className="text-3xl font-black text-slate-700 dark:text-slate-200 mt-auto">{count}</span>
                                         <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{t('dashboard.units')}</span>
@@ -166,7 +166,7 @@ export default function Dashboard() {
                                 </div>
                                 <div className="text-right">
                                     <span className="text-xs font-bold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 py-1.5 px-3 rounded-xl border border-gray-200 dark:border-slate-700 whitespace-nowrap">
-                                        {new Date(item.createdAt).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' })}
+                                        {new Date(item.createdAt).toLocaleString(i18n.language || 'es', { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' })}
                                     </span>
                                 </div>
                             </div>

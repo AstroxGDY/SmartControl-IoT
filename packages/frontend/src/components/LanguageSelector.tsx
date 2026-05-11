@@ -38,7 +38,7 @@ export function LanguageSelector() {
       >
         <Languages size={20} className="text-white group-hover:scale-110 transition-transform" />
         <span className="absolute -top-1 -right-1 bg-cyan-500 text-[8px] font-black px-1 rounded-sm uppercase">
-          {i18n.language.substring(0, 2)}
+          {i18n.language?.substring(0, 2) || 'en'}
         </span>
       </button>
 

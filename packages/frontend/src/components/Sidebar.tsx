@@ -22,16 +22,16 @@ export const Sidebar = () => {
         <Link to="/bluetooth" title={t('bluetooth.title')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
           <Bluetooth size={24} />
         </Link>
-        <Link to="/analysis" title={t('analysis.title', 'Análisis en Vivo')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
+        <Link to="/analysis" title={t('analysis.title')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
           <Activity size={24} />
         </Link>
-        <Link to="/statistics" title={t('statistics.title', 'Estadísticas')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
+        <Link to="/statistics" title={t('statistics.title')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
           <BarChart size={24} />
         </Link>
-        <Link to="/security" title={t('security.title', 'Seguridad')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
+        <Link to="/security" title={t('security.title')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
           <Shield size={24} />
         </Link>
-        <Link to="/rules" title={t('sidebar.rules', 'Reglas Inteligentes')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
+        <Link to="/rules" title={t('sidebar.rules')} className="hover:scale-110 transition-transform opacity-70 hover:opacity-100">
           <Zap size={24} />
         </Link>
       </nav>
