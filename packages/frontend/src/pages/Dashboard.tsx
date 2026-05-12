@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { DeviceCard } from '../components/DeviceCard';
-import { Loader2, Activity, Shapes, ListPlus, RadioTower } from 'lucide-react';
+import { Loader2, Activity, Shapes, ListPlus, RadioTower, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { IDevice } from '../../../shared/types';
 
 export default function Dashboard() {
@@ -29,15 +30,21 @@ export default function Dashboard() {
     }, []);
 
     const handleDeviceDeleted = () => {
-        fetchDevices(true); // silent: no spinner, solo actualiza la lista
+        fetchDevices(true);
     };
 
     if (loading) {
         return (
-            <div className="p-8 animate-in fade-in flex flex-col items-center justify-center h-[70vh]">
-                <Loader2 size={64} className="text-blue-500 dark:text-blue-400 animate-spin mb-6" />
-                <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-300">{t('dashboard.analyzing')}</h2>
-                <p className="text-gray-400 dark:text-gray-500">{t('dashboard.syncing')}</p>
+            <div className="p-8 flex flex-col items-center justify-center h-[70vh]">
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center"
+                >
+                    <Loader2 size={64} className="text-indigo-500 animate-spin mb-6" />
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter">{t('dashboard.analyzing')}</h2>
+                    <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em] mt-2">{t('dashboard.syncing')}</p>
+                </motion.div>
             </div>
         );
     }
@@ -45,136 +52,177 @@ export default function Dashboard() {
     const totalDevices = devices.length;
     const onlineDevices = devices.filter(d => d.status === 'online').length;
     
-    // Contar por tipo
     const typeCounts = devices.reduce((acc, curr) => {
         acc[curr.type] = (acc[curr.type] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
 
-    // Ordenar dispositivo por fecha (más recientes primero)
     const recentActivity = [...devices].sort((a: any, b: any) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     ).slice(0, 4);
 
+    const containerVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { 
+            opacity: 1, 
+            y: 0,
+            transition: { 
+                duration: 0.5,
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 10 },
+        visible: { opacity: 1, y: 0 }
+    };
+
     return (
-        <div className="p-8 animate-in fade-in duration-500">
+        <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+            className="p-8 max-w-7xl mx-auto space-y-12"
+        >
             {/* Header */}
-            <header className="mb-8 border-b pb-4 border-gray-100 dark:border-slate-800 flex items-end justify-between">
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-100 dark:border-slate-800 pb-8">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-800 dark:text-slate-100">{t('dashboard.title')}</h1>
-                    <p className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-2">{new Date().toLocaleDateString(i18n.language || 'es', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <h1 className="text-5xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">{t('dashboard.title')}</h1>
+                    <p className="text-slate-400 mt-3 font-bold uppercase text-xs tracking-[0.2em]">{new Date().toLocaleDateString(i18n.language || 'es', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                 </div>
             </header>
 
             {/* SECCIÓN 1: RESUMEN ORGÁNICO */}
-            <section className="mb-10">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                    {/* Card: Estado General Red */}
-                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-6 rounded-3xl shadow-xl shadow-blue-200 dark:shadow-none text-white flex flex-col justify-between relative overflow-hidden">
-                        <div className="absolute -right-8 -top-8 opacity-10">
-                            <RadioTower size={180} />
-                        </div>
-                        <div className="relative z-10">
-                            <h3 className="font-bold text-blue-100 mb-1 flex items-center gap-2"><Activity size={18} /> {t('dashboard.network_pulse')}</h3>
-                            <p className="text-sm text-blue-200 mb-6 font-medium">{t('dashboard.network_pulse_desc')}</p>
-                            
-                            <div className="flex items-end gap-3 mt-4">
-                                <span className="text-7xl font-black">{onlineDevices}</span>
-                                <span className="text-2xl font-bold text-blue-300 pb-2">/ {totalDevices}</span>
-                            </div>
-                        </div>
-                        
-                        <div className="mt-4 bg-white/10 rounded-xl p-3 flex justify-between items-center relative z-10 backdrop-blur-sm">
-                            <span className="font-semibold text-sm">{t('dashboard.ecosystem_health')}</span>
-                            <span className="font-black text-sm bg-blue-500 px-3 py-1 rounded-full shadow-inner">{totalDevices > 0 ? Math.round((onlineDevices / totalDevices) * 100) : 0}%</span>
-                        </div>
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Card: Estado General Red */}
+                <motion.div 
+                    variants={itemVariants}
+                    className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-8 rounded-[3rem] shadow-2xl shadow-indigo-500/20 text-white flex flex-col justify-between relative overflow-hidden group"
+                >
+                    <div className="absolute -right-12 -top-12 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                        <RadioTower size={240} />
                     </div>
-
-                    {/* Card: Inventario */}
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm dark:shadow-none border border-gray-100 dark:border-slate-800 col-span-1 lg:col-span-2">
-                        <div className="flex justify-between items-start mb-6">
-                            <div>
-                                <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"><Shapes size={20} className="text-purple-600 dark:text-purple-400"/> {t('dashboard.inventory')}</h3>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 uppercase font-bold tracking-widest">{t('dashboard.distribution_type')}</p>
-                            </div>
-                        </div>
+                    <div className="relative z-10">
+                        <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-indigo-100 mb-6 flex items-center gap-2"><Activity size={16} /> {t('dashboard.network_pulse')}</h3>
                         
-                        {Object.keys(typeCounts).length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-24 text-gray-400 dark:text-gray-500 text-sm font-semibold">
-                                {t('dashboard.no_devices')}
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {Object.entries(typeCounts).map(([type, count]) => (
-                                    <div key={type} className="bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl p-4 flex flex-col shadow-sm dark:shadow-none">
-                                        <span className="text-[10px] uppercase font-black tracking-wider text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/40 w-fit px-2 py-0.5 rounded-md mb-2 truncate max-w-full">
-                                            {typeof type === 'string' && type !== 'undefined' ? type : t('common.generic')}
-                                        </span>
-                                        <span className="text-3xl font-black text-slate-700 dark:text-slate-200 mt-auto">{count}</span>
-                                        <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{t('dashboard.units')}</span>
+                        <div className="flex items-baseline gap-3">
+                            <span className="text-8xl font-black leading-none">{onlineDevices}</span>
+                            <span className="text-2xl font-bold text-indigo-300">/ {totalDevices}</span>
+                        </div>
+                        <p className="text-sm text-indigo-200 mt-4 font-bold opacity-80">{t('dashboard.network_pulse_desc')}</p>
+                    </div>
+                    
+                    <div className="mt-8 bg-white/10 rounded-2xl p-4 flex justify-between items-center relative z-10 backdrop-blur-md border border-white/10">
+                        <span className="font-black text-[10px] uppercase tracking-widest">{t('dashboard.ecosystem_health')}</span>
+                        <span className="font-black text-lg">{totalDevices > 0 ? Math.round((onlineDevices / totalDevices) * 100) : 0}%</span>
+                    </div>
+                </motion.div>
+
+                {/* Card: Inventario */}
+                <motion.div 
+                    variants={itemVariants}
+                    className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 col-span-1 lg:col-span-2 shadow-sm"
+                >
+                    <div className="mb-8">
+                        <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-3">
+                            <Shapes className="text-indigo-500" size={24}/> {t('dashboard.inventory')}
+                        </h3>
+                        <p className="text-[10px] text-slate-400 mt-1 uppercase font-black tracking-[0.2em] opacity-60">{t('dashboard.distribution_type')}</p>
+                    </div>
+                    
+                    {Object.keys(typeCounts).length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-32 text-slate-300 dark:text-slate-700">
+                            <Shapes size={48} className="mb-4 opacity-20" />
+                            <p className="font-black uppercase text-[10px] tracking-widest">{t('dashboard.no_devices')}</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                            {Object.entries(typeCounts).map(([type, count]) => (
+                                <div key={type} className="bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-[2rem] p-5 flex flex-col hover:border-indigo-500/30 transition-colors">
+                                    <span className="text-[9px] uppercase font-black tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 w-fit px-2.5 py-1 rounded-lg mb-4 truncate max-w-full">
+                                        {typeof type === 'string' && type !== 'undefined' ? type : t('common.generic')}
+                                    </span>
+                                    <div className="mt-auto">
+                                        <span className="text-4xl font-black text-slate-800 dark:text-white">{count}</span>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mt-1">{t('dashboard.units')}</span>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </motion.div>
             </section>
 
             {/* SECCIÓN 2: ACCESO RÁPIDO */}
-            <section className="mb-10">
-                <div className="flex justify-between items-end mb-6">
+            <section>
+                <div className="flex justify-between items-center mb-8">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_access')}</h2>
-                        <p className="text-sm text-gray-400 dark:text-gray-500">{t('dashboard.active_devices')}</p>
+                        <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">{t('dashboard.quick_access')}</h2>
+                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em] mt-1 opacity-60">{t('dashboard.active_devices')}</p>
                     </div>
-                    <Link to="/devices" className="inline-block bg-cyan-500 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-cyan-600 transition-all shadow-md shadow-cyan-100 dark:shadow-none text-center">
-                        {t('dashboard.manage_all')}
+                    <Link to="/devices" className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-slate-200 dark:shadow-none">
+                        {t('dashboard.manage_all')} <ChevronRight size={14} />
                     </Link>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {devices.length === 0 ? (
-                         <div className="col-span-full border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-3xl p-8 text-center text-gray-400 flex flex-col items-center justify-center">
-                             <Shapes size={48} className="mb-4 text-gray-300" />
-                             <p className="font-bold">{t('dashboard.empty_ecosystem')}</p>
-                             <p className="text-sm">{t('dashboard.empty_ecosystem_desc')}</p>
-                         </div>
-                    ) : (
-                        devices.slice(0, 4).map((device) => (
-                            <DeviceCard key={device._id} device={device} onDeleted={handleDeviceDeleted} />
-                        ))
-                    )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <AnimatePresence>
+                        {devices.length === 0 ? (
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="col-span-full border-4 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem] p-16 text-center text-slate-300 dark:text-slate-700 flex flex-col items-center justify-center"
+                            >
+                                <Shapes size={64} className="mb-6 opacity-20" />
+                                <p className="font-black uppercase tracking-[0.2em] text-sm text-slate-400">{t('dashboard.empty_ecosystem')}</p>
+                                <p className="text-[10px] font-bold uppercase mt-2 opacity-60 tracking-widest">{t('dashboard.empty_ecosystem_desc')}</p>
+                            </motion.div>
+                        ) : (
+                            devices.slice(0, 4).map((device) => (
+                                <motion.div key={device._id} variants={itemVariants}>
+                                    <DeviceCard device={device} onDeleted={handleDeviceDeleted} />
+                                </motion.div>
+                            ))
+                        )}
+                    </AnimatePresence>
                 </div>
             </section>
 
             {/* SECCIÓN 3: ACTIVIDAD */}
-            <section className="mb-10">
-                <h2 className="text-xl font-bold mb-6 text-slate-700 dark:text-slate-300 flex items-center gap-2"><ListPlus size={24} className="text-purple-600 dark:text-purple-400"/> {t('dashboard.recent_activity')}</h2>
-                <div className="space-y-4 max-w-4xl">
+            <section className="pb-12">
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-8 flex items-center gap-3">
+                    <ListPlus size={28} className="text-indigo-500"/> {t('dashboard.recent_activity')}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {recentActivity.length === 0 ? (
-                        <p className="text-sm font-semibold text-gray-400 dark:text-gray-500 italic">{t('dashboard.no_activity')}</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">{t('dashboard.no_activity')}</p>
                     ) : (
                         recentActivity.map((item: any, i: number) => (
-                            <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-4 text-sm bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm dark:shadow-none transition-all hover:border-blue-200 dark:hover:border-blue-800">
-                                <div className="bg-blue-50 dark:bg-blue-900/30 shrink-0 border border-blue-100 dark:border-blue-800/30 w-12 h-12 rounded-xl text-blue-600 dark:text-blue-400 flex items-center justify-center overflow-hidden p-1.5 object-contain">
-                                    {item.image ? <img src={item.image} alt="device" className="w-full h-full object-contain" /> : <Shapes size={20} />}
+                            <motion.div 
+                                key={i} 
+                                variants={itemVariants}
+                                className="flex items-center gap-5 bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800 hover:shadow-lg hover:shadow-slate-200/50 transition-all group"
+                            >
+                                <div className="bg-slate-50 dark:bg-slate-800 shrink-0 border border-slate-100 dark:border-slate-700 w-16 h-16 rounded-2xl flex items-center justify-center p-2 transition-transform group-hover:scale-110">
+                                    {item.image ? <img src={item.image} alt="" className="w-full h-full object-contain" /> : <Shapes size={24} className="text-slate-300" />}
                                 </div>
-                                <div className="flex-1">
-                                    <p className="font-bold text-slate-800 dark:text-slate-100 text-base">{item.name}</p>
-                                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-0.5">{t('dashboard.via')} {item.connectionType || t('dashboard.local_udp')} • ID: {item.attributes?.tuyaId?.substring(0,6) || 'N/A'}</p>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">{item.name}</p>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                                        {t('dashboard.via')} {item.connectionType || t('dashboard.local_udp')} • ID: {item.attributes?.tuyaId?.substring(0,8) || 'N/A'}
+                                    </p>
                                 </div>
-                                <div className="text-right">
-                                    <span className="text-xs font-bold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 py-1.5 px-3 rounded-xl border border-gray-200 dark:border-slate-700 whitespace-nowrap">
+                                <div className="text-right shrink-0">
+                                    <span className="text-[9px] font-black bg-slate-100 dark:bg-slate-800 text-slate-500 py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700">
                                         {new Date(item.createdAt).toLocaleString(i18n.language || 'es', { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' })}
                                     </span>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))
                     )}
                 </div>
             </section>
-
-        </div>
+        </motion.div>
     );
 }

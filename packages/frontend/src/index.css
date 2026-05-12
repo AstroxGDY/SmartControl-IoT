@@ -1,3 +1,23 @@
 @import "tailwindcss";
 
 @variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  /* Eliminar el outline por defecto de Chromium que causa las rayas blancas discontinuas en Electron */
+  *:focus {
+    outline: none !important;
+  }
+
+  /* Mejora de renderizado para evitar artefactos en Electron dev mode */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Fix para componentes animados que presentan artefactos visuales en Chromium/Electron */
+.animate-in {
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform, opacity;
+}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Lightbulb, Thermometer, Camera,
-  Plus, Wifi, Plug, Bot, Droplets, Trash2, AlertTriangle, Loader2, Shield, type LucideIcon
+  Plus, Wifi, Plug, Bot, Droplets, Trash2, AlertTriangle, Loader2, Shield, Headphones, Speaker, type LucideIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DeviceDetailsModal } from './DeviceDetailsModal';
@@ -13,7 +13,10 @@ const ICON_MAP: Record<string, LucideIcon> = {
   'camera': Camera,
   'sensor': Droplets,
   'outlet': Plug,
+  'plug': Plug,
   'robot': Bot,
+  'headphones': Headphones,
+  'speaker': Speaker,
   'default': Wifi
 };
 

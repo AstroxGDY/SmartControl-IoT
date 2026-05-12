@@ -4,6 +4,8 @@ const fs = require('fs');
 const { exec } = require('child_process');
 const { getSystemDefaults } = require('./system_secrets.cjs');
 
+app.disableHardwareAcceleration();
+
 // ── Servicios del Sistema ───────────────────────────────────────────
 let backendProcess = null;
 
@@ -52,11 +54,29 @@ function createWindow() {
     width: 1200,
     height: 800,
     title: "SmartControl - TFG",
+    frame: false,
     webPreferences: {
       // Esto permite que el front y el back se comuniquen mejor
       nodeIntegration: true,
       contextIsolation: false,
     },
+  });
+
+  // Window control handlers
+  ipcMain.handle('window-minimize', () => {
+    win.minimize();
+  });
+
+  ipcMain.handle('window-maximize', () => {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win.maximize();
+    }
+  });
+
+  ipcMain.handle('window-close', () => {
+    win.close();
   });
 
   win.removeMenu();

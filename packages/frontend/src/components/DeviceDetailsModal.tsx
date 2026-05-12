@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { X, Cpu, Hash, Power, PowerOff, Loader2, Wifi, Trash2, Pencil, Check, Upload, AlertCircle, Shield, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -204,18 +205,18 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
         }
     };
 
-    return (
+    return createPortal(
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300"
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300"
             onClick={onClose}
         >
             <div 
-                className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-lg shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col max-h-[90vh] border border-white/20 dark:border-slate-800 transition-colors duration-300 animate-in zoom-in-95 slide-in-from-bottom-4 duration-500"
+                className="bg-white dark:bg-slate-900 rounded-[3rem] w-full max-w-lg shadow-3xl overflow-hidden flex flex-col max-h-[90vh] border border-white/20 dark:border-slate-800 transition-all duration-500 animate-in zoom-in-95 slide-in-from-bottom-8"
                 onClick={(e) => e.stopPropagation()}
             >
 
                 {/* Header */}
-                <div className="p-8 pb-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-900/50 gap-4">
+                <div className="p-8 pb-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-900/50 gap-4 shrink-0">
                     <div className="flex items-center gap-5 min-w-0 flex-1">
                         <div 
                             className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-purple-50 dark:bg-purple-900/20 overflow-hidden border border-purple-100 dark:border-purple-800/30 flex items-center justify-center shrink-0 p-1 relative group transition-all ${isEditing ? 'cursor-pointer hover:border-purple-500' : ''}`}
@@ -318,7 +319,7 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
 
                         <button 
                             onClick={isEditing ? () => setIsEditing(false) : onClose} 
-                            className="ml-2 w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-red-500 hover:text-white hover:rotate-90 transition-all duration-300 border border-slate-200 dark:border-slate-700 shadow-sm"
+                            className="ml-2 w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-red-500 hover:text-white transition-all duration-300 border border-slate-200 dark:border-slate-700 shadow-sm"
                             title={t('common.close')}
                         >
                             <X size={20} strokeWidth={3} />
@@ -327,7 +328,7 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                 </div>
 
                 {/* Tab Switcher */}
-                <div className="flex bg-gray-50 dark:bg-slate-800/50 p-1 border-b border-gray-100 dark:border-slate-800">
+                <div className="flex bg-gray-50 dark:bg-slate-800/50 p-1 border-b border-gray-100 dark:border-slate-800 shrink-0">
                     <button
                         onClick={() => setActiveTab('controls')}
                         className={`flex-1 py-2 text-xs font-black rounded-lg transition-all uppercase tracking-widest ${activeTab === 'controls' ? 'bg-white dark:bg-slate-900 text-purple-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
@@ -342,7 +343,7 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                     </button>
                 </div>
 
-                <div className="p-6 overflow-y-auto relative min-h-[400px]">
+                <div className="p-6 overflow-y-auto flex-1 relative min-h-0 bg-white dark:bg-slate-900">
                     {isEditing && activeTab === 'controls' && (
                         <div className="mb-8 space-y-4 animate-in fade-in duration-300">
                             <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-2 mb-4">
@@ -360,9 +361,13 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                                     <button
                                         key={icon.id}
                                         onClick={() => setTempImage(icon.path)}
-                                        className={`p-2 rounded-xl border-2 transition-all hover:scale-110 ${tempImage === icon.path ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-gray-50'}`}
+                                        className={`p-3 rounded-2xl border-2 transition-all hover:scale-105 flex items-center justify-center ${tempImage === icon.path ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/20 shadow-lg shadow-purple-500/10' : 'border-transparent bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                                     >
-                                        <img src={icon.path} alt={icon.label} className="w-8 h-8 object-contain dark:invert" />
+                                        <img 
+                                            src={icon.path} 
+                                            alt={icon.label} 
+                                            className={`w-7 h-7 sm:w-8 sm:h-8 object-contain transition-all duration-300 ${tempImage === icon.path ? 'opacity-100 scale-110' : 'opacity-40 hover:opacity-100'}`} 
+                                        />
                                     </button>
                                 ))}
                             </div>
@@ -649,6 +654,7 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

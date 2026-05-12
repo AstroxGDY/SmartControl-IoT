@@ -33,6 +33,9 @@ export const startScheduler = () => {
         let batteryLevel: number | undefined;
         let dps: any;
         let status: 'online' | 'offline' | 'error' = 'offline';
+        let voltage: number | undefined;
+        let current: number | undefined;
+        let power: number | undefined;
 
         if (device.attributes?.bluetoothId) {
           try {
@@ -72,10 +75,16 @@ export const startScheduler = () => {
             const result = extractJson(stdout) as any;
             if (result.success && Array.isArray(result.results)) {
               const live = result.results[0];
-              if (live && live.success && live.dps) {
-                 status = 'online';
-                 dps = live.dps;
-                 await Device.updateOne({ _id: device._id }, { $set: { status: 'online', 'attributes.dps': live.dps } });
+               if (live && live.success && live.dps) {
+                  status = 'online';
+                  dps = live.dps;
+
+                  // Extract Power Metrics (Common Tuya DPs)
+                  if (dps['20']) voltage = dps['20'] / 10; // Voltage (V)
+                  if (dps['18']) current = dps['18'] / 1000; // Current (A)
+                  if (dps['19']) power = dps['19'] / 10; // Power (W)
+
+                  await Device.updateOne({ _id: device._id }, { $set: { status: 'online', 'attributes.dps': live.dps } });
               } else {
                  status = 'offline';
                  await Device.updateOne({ _id: device._id }, { $set: { status: 'offline' } });
@@ -94,6 +103,9 @@ export const startScheduler = () => {
           timestamp: new Date(),
           batteryLevel,
           status,
+          voltage,
+          current,
+          power,
           dps,
         });
         await statsEntry.save();

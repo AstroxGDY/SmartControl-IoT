@@ -8,6 +8,9 @@ export interface IDeviceStatsDocument extends Document {
   // Extra metrics for analysis
   clicks?: number;
   distance?: number;
+  voltage?: number;
+  current?: number;
+  power?: number;
   dps?: Record<string, any>;
 }
 
@@ -18,6 +21,9 @@ const DeviceStatsSchema: Schema = new Schema<IDeviceStatsDocument>({
   status: { type: String, enum: ['online', 'offline', 'error'], required: true },
   clicks: { type: Number, default: 0 },
   distance: { type: Number, default: 0 },
+  voltage: { type: Number },
+  current: { type: Number },
+  power: { type: Number },
   dps: { type: Schema.Types.Mixed },
 }, {
   // We want to be able to query fast by device and time

@@ -1,12 +1,15 @@
 export const PRESET_ICONS = [
   { id: 'bulb', path: '/icons/bulb.svg', label: 'Luz / Bombilla' },
-  { id: 'plug', path: '/icons/plug.svg', label: 'Enchufe / Toma' },
+  { id: 'plug', path: '/icons/plug.svg', label: 'Enchufe (Cable)' },
+  { id: 'socket', path: '/icons/socket.svg', label: 'Toma / Base de pared' },
   { id: 'fan', path: '/icons/fan.svg', label: 'Ventilador' },
   { id: 'thermo', path: '/icons/thermo.svg', label: 'Termómetro / Sensor' },
   { id: 'tv', path: '/icons/tv.svg', label: 'Televisión / Entretenimiento' },
   { id: 'camera', path: '/icons/camera.svg', label: 'Cámara / Visión' },
   { id: 'shield', path: '/icons/shield.svg', label: 'Seguridad / Sensor' },
-  { id: 'mobile', path: '/icons/mobile.svg', label: 'Móvil / Tablet' }
+  { id: 'mobile', path: '/icons/mobile.svg', label: 'Móvil / Tablet' },
+  { id: 'headphones', path: '/icons/headphones.svg', label: 'Auriculares' },
+  { id: 'speaker', path: '/icons/speaker.svg', label: 'Altavoz / Sonido' }
 ];
 
 export const getIconPath = (iconId: string) => {
