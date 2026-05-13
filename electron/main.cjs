@@ -4,7 +4,7 @@ const fs = require('fs');
 const { exec } = require('child_process');
 const { getSystemDefaults } = require('./system_secrets.cjs');
 
-app.disableHardwareAcceleration();
+// app.disableHardwareAcceleration();
 
 // ── Servicios del Sistema ───────────────────────────────────────────
 let backendProcess = null;

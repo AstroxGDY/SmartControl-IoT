@@ -371,9 +371,9 @@ const SmartRules = () => {
               initial={{ scale: 0.9, opacity: 0, y: 30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 30 }}
-              className="relative bg-white dark:bg-slate-900 w-full max-w-xl rounded-[3rem] shadow-3xl overflow-hidden border border-slate-100 dark:border-slate-800"
+              className="relative bg-white dark:bg-slate-900 w-full max-w-xl rounded-[3rem] shadow-3xl overflow-hidden border border-slate-100 dark:border-slate-800 max-h-[85vh] flex flex-col"
             >
-              <div className="p-10">
+              <div className="p-10 pb-6 shrink-0 border-b border-slate-50 dark:border-slate-800/50">
                 <div className="flex justify-between items-center mb-10">
                   <h2 className="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter flex items-center gap-3">
                     <Plus className="text-indigo-600 dark:text-indigo-400" />
@@ -386,6 +386,9 @@ const SmartRules = () => {
                     <X size={24} />
                   </button>
                 </div>
+              </div>
+
+              <div className="p-10 pt-8 overflow-y-auto flex-1 custom-scrollbar">
 
                 <form onSubmit={handleCreateRule} className="space-y-8">
                   <div>
