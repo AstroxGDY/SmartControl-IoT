@@ -185,9 +185,9 @@ def iniciar_modo_diagnostico_hid(handle_str):
 
                     if flags_boton & RI_MOUSE_LEFT_BUTTON_DOWN:
                         enviar_json({"event": "click", "button": "left"})
-                    elif flags_boton & RI_MOUSE_RIGHT_BUTTON_DOWN:
+                    if flags_boton & RI_MOUSE_RIGHT_BUTTON_DOWN:
                         enviar_json({"event": "click", "button": "right"})
-                    elif flags_boton & RI_MOUSE_MIDDLE_BUTTON_DOWN:
+                    if flags_boton & RI_MOUSE_MIDDLE_BUTTON_DOWN:
                         enviar_json({"event": "click", "button": "middle"})
 
                     if flags_boton & RI_MOUSE_WHEEL:

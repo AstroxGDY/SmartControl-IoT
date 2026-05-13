@@ -294,7 +294,7 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                             <button
                                 onClick={handleToggle}
                                 disabled={isToggling}
-                                className={`px-2 py-1.5 sm:px-4 sm:py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${liveDps[togglePowerDP] ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-500 text-white shadow-lg'}`}
+                                className={`px-2 py-1.5 sm:px-4 sm:py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${liveDps[togglePowerDP] ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30' : 'bg-green-500 text-white shadow-lg shadow-green-500/20'}`}
                             >
                                 <Power size={14} />
                                 <span className="hidden xs:inline">{isToggling ? '...' : (liveDps[togglePowerDP] ? t('device_card.status.off_action') : t('device_card.status.on_action'))}</span>
@@ -312,7 +312,7 @@ export const DeviceDetailsModal = ({ device, onClose, onDeleted }: DeviceDetails
                         )}
 
                         {!isEditing && (
-                            <button onClick={() => setUnlinkStep('confirm')} className="p-1.5 sm:p-2 rounded-xl bg-red-50 text-red-400 border border-red-100">
+                            <button onClick={() => setUnlinkStep('confirm')} className="p-1.5 sm:p-2 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-400 dark:text-red-400 border border-red-100 dark:border-red-900/30">
                                 <Trash2 size={16} />
                             </button>
                         )}

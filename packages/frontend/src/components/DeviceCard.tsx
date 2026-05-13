@@ -136,7 +136,7 @@ export const DeviceCard = ({ device, onDeleted }: DeviceCardProps) => {
         <button
           onClick={() => setUnlinkStep('confirm')}
           title={t('common.delete')}
-          className="absolute top-3 right-3 p-1.5 rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-900/50 shadow-sm dark:shadow-none"
+          className="absolute top-3 right-3 p-1.5 rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-300 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-900/50 shadow-sm dark:shadow-none"
         >
           <Trash2 size={14} />
         </button>
@@ -163,7 +163,7 @@ export const DeviceCard = ({ device, onDeleted }: DeviceCardProps) => {
             <h4 className="font-bold text-[16px] text-slate-800 dark:text-slate-100 leading-tight mt-1 truncate">{device.name}</h4>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={`w-1.5 h-1.5 rounded-full ${statusColor}`} />
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-widest">{statusText}</span>
+              <span className="text-[10px] text-slate-500 dark:text-gray-500 font-black uppercase tracking-widest">{statusText}</span>
             </div>
           </div>
         </div>

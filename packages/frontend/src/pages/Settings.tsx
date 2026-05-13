@@ -271,45 +271,70 @@ export default function Settings() {
             </div>
           )}
 
-          {/* Sección de Información Legal */}
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                <Shield size={24} />
-              </div>
-              <div>
-                <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter leading-none">{t('settings.legal_info')}</h3>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">{t('settings.transparency_privacy')}</p>
+          {/* Trust Center / Información Legal */}
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden">
+            <div className="p-8 border-b border-gray-50 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-800/30">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                  <Shield size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter leading-none">{t('settings.legal_info')}</h3>
+                  <p className="text-[10px] text-indigo-500 font-black uppercase tracking-widest mt-1">{t('settings.transparency_privacy')}</p>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <h4 className="text-xs font-black uppercase tracking-widest text-indigo-500">{t('settings.legal_notice')}</h4>
-                <div className="text-sm text-gray-500 dark:text-gray-400 space-y-2 leading-relaxed">
-                  <p>{t('settings.legal_text')}</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="text-xs font-black uppercase tracking-widest text-emerald-500">{t('settings.privacy_title')}</h4>
-                <div className="text-sm text-gray-500 dark:text-gray-400 space-y-2 leading-relaxed">
-                  <p>{t('settings.privacy_text')}</p>
-                </div>
-              </div>
-
-              <div className="md:col-span-2 pt-4 border-t border-gray-50 dark:border-slate-800">
-                <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">{t('settings.attributions')}</h4>
-                <div className="flex flex-wrap gap-2">
-                  {['React', 'Electron', 'Node.js', 'MongoDB', 'Tuya SDK', 'Lucide Icons', 'Fastify', 'Framer Motion'].map((lib) => (
-                    <span key={lib} className="px-3 py-1 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-[10px] font-black uppercase tracking-widest rounded-lg">
-                      {lib}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-[9px] text-gray-400 mt-4 font-medium italic">
-                  {t('settings.copyright')}
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Card: Aviso Legal */}
+              <div className="p-6 rounded-3xl bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-indigo-200 transition-colors">
+                <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                   {t('settings.legal_notice')}
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  {t('settings.legal_text')}
                 </p>
+                <button className="mt-4 text-[9px] font-black uppercase text-indigo-600 dark:text-indigo-400 hover:underline">
+                  Ver documento completo →
+                </button>
+              </div>
+
+              {/* Card: Privacidad */}
+              <div className="p-6 rounded-3xl bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-emerald-200 transition-colors">
+                <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                   {t('settings.privacy_title')}
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  {t('settings.privacy_text')}
+                </p>
+                <button className="mt-4 text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 hover:underline">
+                  Política de datos →
+                </button>
+              </div>
+
+              {/* Attributions & System */}
+              <div className="md:col-span-2 pt-8 mt-2 border-t border-gray-100 dark:border-slate-800">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">{t('settings.attributions')}</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {['React 19', 'Electron 33', 'Node.js', 'Tuya SDK', 'Fastify', 'Lucide Icons'].map((lib) => (
+                        <span key={lib} className="px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-tighter rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm">
+                          {lib}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-left md:text-right">
+                    <p className="text-[10px] font-black text-slate-800 dark:text-slate-300 uppercase tracking-tight">SmartControl IoT</p>
+                    <p className="text-[9px] text-slate-400 font-medium mt-1">v1.2.0-stable • Build 2026.05.13</p>
+                    <p className="text-[9px] text-gray-400 mt-2 font-medium italic">
+                      {t('settings.copyright')}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

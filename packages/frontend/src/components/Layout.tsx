@@ -4,7 +4,7 @@ import TitleBar from './TitleBar';
 
 export default function Layout() {
   return (
-    <div className="flex flex-col h-screen bg-[#F8F9FD] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#F5F7FF] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-hidden">
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />

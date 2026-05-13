@@ -9,7 +9,8 @@ export const PRESET_ICONS = [
   { id: 'shield', path: '/icons/shield.svg', label: 'Seguridad / Sensor' },
   { id: 'mobile', path: '/icons/mobile.svg', label: 'Móvil / Tablet' },
   { id: 'headphones', path: '/icons/headphones.svg', label: 'Auriculares' },
-  { id: 'speaker', path: '/icons/speaker.svg', label: 'Altavoz / Sonido' }
+  { id: 'speaker', path: '/icons/speaker.svg', label: 'Altavoz / Sonido' },
+  { id: 'mouse', path: '/icons/mouse.svg', label: 'Ratón / Periférico' }
 ];
 
 export const getIconPath = (iconId: string) => {

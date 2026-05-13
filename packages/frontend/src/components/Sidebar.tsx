@@ -20,7 +20,7 @@ export const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-22 bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-900 flex flex-col items-center py-6 gap-4 shrink-0 h-full transition-all duration-300 z-50">
+    <aside className="w-22 bg-[#EEF1F8] dark:bg-slate-950 border-r border-slate-200/60 dark:border-slate-900 flex flex-col items-center py-6 gap-4 shrink-0 h-full transition-all duration-300 z-50">
       <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-500/20 text-white mb-2">
         <LayoutDashboard size={24} />
       </div>
@@ -42,14 +42,14 @@ export const Sidebar = () => {
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 />
               )}
-              <item.icon 
-                size={24} 
-                className={`relative z-10 transition-colors duration-300 ${
-                  isActive 
-                    ? 'text-indigo-600 dark:text-indigo-400' 
-                    : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200'
-                }`} 
-              />
+                <item.icon 
+                  size={24} 
+                  className={`relative z-10 transition-colors duration-300 ${
+                    isActive 
+                      ? 'text-indigo-600 dark:text-indigo-400' 
+                      : 'text-slate-500 group-hover:text-slate-800 dark:text-slate-400 dark:group-hover:text-slate-200'
+                  }`} 
+                />
               {isActive && (
                 <motion.div 
                   layoutId="activeIndicator"

@@ -86,7 +86,7 @@ export default function Dashboard() {
             className="p-8 max-w-7xl mx-auto space-y-12"
         >
             {/* Header */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-100 dark:border-slate-800 pb-8">
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200/60 dark:border-slate-800 pb-8">
                 <div>
                     <h1 className="text-5xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">{t('dashboard.title')}</h1>
                     <p className="text-slate-400 mt-3 font-bold uppercase text-xs tracking-[0.2em]">{new Date().toLocaleDateString(i18n.language || 'es', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
@@ -122,7 +122,7 @@ export default function Dashboard() {
                 {/* Card: Inventario */}
                 <motion.div 
                     variants={itemVariants}
-                    className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 col-span-1 lg:col-span-2 shadow-sm"
+                    className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-200/60 dark:border-slate-800 col-span-1 lg:col-span-2 shadow-sm"
                 >
                     <div className="mb-8">
                         <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-3">
@@ -139,7 +139,7 @@ export default function Dashboard() {
                     ) : (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                             {Object.entries(typeCounts).map(([type, count]) => (
-                                <div key={type} className="bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-[2rem] p-5 flex flex-col hover:border-indigo-500/30 transition-colors">
+                                <div key={type} className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 rounded-[2rem] p-5 flex flex-col hover:border-indigo-500/30 transition-colors">
                                     <span className="text-[9px] uppercase font-black tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 w-fit px-2.5 py-1 rounded-lg mb-4 truncate max-w-full">
                                         {typeof type === 'string' && type !== 'undefined' ? type : t('common.generic')}
                                     </span>
@@ -172,7 +172,7 @@ export default function Dashboard() {
                             <motion.div 
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                className="col-span-full border-4 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem] p-16 text-center text-slate-300 dark:text-slate-700 flex flex-col items-center justify-center"
+                                className="col-span-full border-4 border-dashed border-slate-200/60 dark:border-slate-800 rounded-[3rem] p-16 text-center text-slate-300 dark:text-slate-700 flex flex-col items-center justify-center"
                             >
                                 <Shapes size={64} className="mb-6 opacity-20" />
                                 <p className="font-black uppercase tracking-[0.2em] text-sm text-slate-400">{t('dashboard.empty_ecosystem')}</p>
@@ -202,9 +202,9 @@ export default function Dashboard() {
                             <motion.div 
                                 key={i} 
                                 variants={itemVariants}
-                                className="flex items-center gap-5 bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800 hover:shadow-lg hover:shadow-slate-200/50 transition-all group"
+                                className="flex items-center gap-5 bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200/60 dark:border-slate-800 hover:shadow-lg hover:shadow-slate-200/50 transition-all group"
                             >
-                                <div className="bg-slate-50 dark:bg-slate-800 shrink-0 border border-slate-100 dark:border-slate-700 w-16 h-16 rounded-2xl flex items-center justify-center p-2 transition-transform group-hover:scale-110">
+                                <div className="bg-slate-50 dark:bg-slate-800 shrink-0 border border-slate-200/50 dark:border-slate-700 w-16 h-16 rounded-2xl flex items-center justify-center p-2 transition-transform group-hover:scale-110">
                                     {item.image ? <img src={item.image} alt="" className="w-full h-full object-contain" /> : <Shapes size={24} className="text-slate-300" />}
                                 </div>
                                 <div className="flex-1 min-w-0">

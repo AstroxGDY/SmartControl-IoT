@@ -12,9 +12,12 @@ import {
     execAsync, 
     EXEC_MAX_BUFFER 
 } from '../utils/pythonUtils.js';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 // ─────────────────────────────────────────────────────────────
 // CONFIGURACIÓN DINÁMICA (Seguridad)
@@ -814,7 +817,10 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
     const { handle } = request.params;
     const { id } = request.query;
     
-    reply.raw.writeHead(200, {
+    reply.hijack();
+    const response = reply.raw;
+
+    response.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
@@ -857,13 +863,16 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
     };
 
     pythonProcess.stdout.on('data', (data: Buffer) => {
+      if (response.destroyed) return;
       const lines = data.toString().split('\n');
       for (const line of lines) {
         if (line.trim()) {
           try {
             // Verify it's valid JSON before sending
             const payload = JSON.parse(line);
-            reply.raw.write(`data: ${line}\n\n`);
+            if (!response.destroyed) {
+              response.write(`data: ${line}\n\n`);
+            }
             
             if (payload.event === 'click') sessionClicks++;
             if (payload.event === 'move') {
@@ -888,15 +897,15 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
     
     pythonProcess.on('close', () => {
       saveStatsToDb();
-      reply.raw.end();
+      if (!response.destroyed) {
+        response.end();
+      }
     });
     
     request.raw.on('close', () => {
       console.log(`[IoT] Conexión SSE cerrada. Deteniendo sniffer para handle ${handle}`);
       pythonProcess.kill();
     });
-
-    return reply;
   });
 
   // ── GET /devices/:id/security-scan ───────────────────────────

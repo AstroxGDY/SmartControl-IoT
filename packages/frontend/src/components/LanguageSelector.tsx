@@ -33,11 +33,11 @@ export function LanguageSelector() {
       {/* Botón Principal (Compacto para Sidebar) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all flex items-center justify-center group relative border border-transparent hover:border-white/10"
+        className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 transition-all flex items-center justify-center group relative border border-slate-200 dark:border-transparent hover:border-slate-300 dark:hover:border-white/10"
         title="Cambiar idioma / Change language"
       >
-        <Languages size={20} className="text-white group-hover:scale-110 transition-transform" />
-        <span className="absolute -top-1 -right-1 bg-cyan-500 text-[8px] font-black px-1 rounded-sm uppercase">
+        <Languages size={20} className="text-slate-600 dark:text-white group-hover:scale-110 transition-transform" />
+        <span className="absolute -top-1 -right-1 bg-cyan-600 dark:bg-cyan-500 text-white text-[8px] font-black px-1 rounded-sm uppercase">
           {i18n.language?.substring(0, 2) || 'en'}
         </span>
       </button>
