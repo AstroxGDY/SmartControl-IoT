@@ -200,7 +200,6 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
       .select('name type connectionType status image owner attributes createdAt updatedAt')
       .lean()) as any[];
 
-    // Polleo en vivo solo los dispositivos con credenciales locales completas
     const queryData = devices
       .map(d => ({
         _id: d._id.toString(),

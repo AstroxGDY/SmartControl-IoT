@@ -8,10 +8,6 @@ def main():
         idx = sys.argv.index("-snapshot-file")
         if idx + 1 < len(sys.argv):
             snapshot_file = sys.argv[idx+1]
-    
-    # In tinytuya 1.17.6, deviceScan does not accept maxwait/scantime as kwarg.
-    # It uses the default SCANTIME (usually 18s).
-    # We set poll=False to avoid errors when it tries to get status without localKey.
     try:
         devices = tinytuya.deviceScan(verbose=False, poll=False)
     except Exception as e:
