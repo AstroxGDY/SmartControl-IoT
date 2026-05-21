@@ -15,7 +15,7 @@ function startBackend() {
     ? path.join(app.getAppPath(), 'packages', 'backend', 'dist', 'packages', 'backend', 'src', 'server.js')
     : path.join(__dirname, '..', 'packages', 'backend', 'src', 'server.ts');
 
-  console.log(`🚀 Iniciando backend desde: ${backendPath}`);
+  console.log(`Iniciando backend desde: ${backendPath}`);
 
   if (isProd) {
     // En producción usamos node directamente sobre el JS compilado
