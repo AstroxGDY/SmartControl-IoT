@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import { DeviceCard } from '../components/DeviceCard';
-import { Search, SlidersHorizontal, LayoutGrid, ListFilter, XCircle } from 'lucide-react';
+import { Search, LayoutGrid, ListFilter, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { IDevice } from '../../../shared/types';
 
@@ -32,10 +32,10 @@ export default function Devices() {
     
     return devices.filter(d => 
         d.name.toLowerCase().includes(lowerSearch) ||
-        d._id.toLowerCase().includes(lowerSearch) ||
+        (d._id && d._id.toLowerCase().includes(lowerSearch)) ||
         d.attributes?.tuyaId?.toLowerCase().includes(lowerSearch) ||
         d.type.toLowerCase().includes(lowerSearch) ||
-        d.ip?.toLowerCase().includes(lowerSearch)
+        (d as any).ip?.toLowerCase().includes(lowerSearch)
     );
   }, [devices, searchTerm]);
 

@@ -14,8 +14,11 @@ import {
 } from '../utils/pythonUtils.js';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import crypto from 'node:crypto';
+import { pipeline } from 'node:stream/promises';
 
 const isProduction = process.env.NODE_ENV === 'production';
 

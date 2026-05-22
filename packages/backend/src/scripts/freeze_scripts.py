@@ -16,16 +16,13 @@ scripts = [
 ]
 
 # Create a small script for tinytuya scan since it's used as a module
-with open("tuya_scan_native.py", "w") as f:
+with open("tuya_scan_native.py", "w", encoding="utf-8") as f:
     f.write("""
 import tinytuya
 import sys
 import json
-import os
 
-# Simular 'python -m tinytuya scan' simplificado
 def main():
-    # Obtener argumentos (ej: -snapshot-file)
     snapshot_file = "snapshot.json"
     if "-snapshot-file" in sys.argv:
         idx = sys.argv.index("-snapshot-file")
@@ -33,19 +30,19 @@ def main():
             snapshot_file = sys.argv[idx+1]
     
     print(f"Scanning devices...")
-    # Ejecutar scan
-    # Nota: tinytuya.Scanner.scan() es lo que hace el CLI internamente
-    # Para simplificar, usamos el comando directo si es posible o una version reducida
-    from tinytuya import Scanner
     
-    # scan() escribe en snapshot.json por defecto si se le pide
-    # Pero aquí simplemente vamos a usar la lógica de descubrimiento
-    d = Scanner().discover(maxwait=5)
+    d = tinytuya.deviceScan(verbose=False, maxretry=2)
     
-    # Formatear como espera el resto de la app
     output = {"devices": []}
-    for dev in d:
-        output["devices"].append(d[dev])
+    for ip, dev in d.items():
+        mapped = {
+            "id": dev.get("gwId"),
+            "ip": ip,
+            "productKey": dev.get("productKey"),
+            "version": dev.get("version"),
+            "name": dev.get("name", f"Dispositivo {dev.get('gwId', '')[-4:]}")
+        }
+        output["devices"].append(mapped)
     
     with open(snapshot_file, "w") as f:
         json.dump(output, f)

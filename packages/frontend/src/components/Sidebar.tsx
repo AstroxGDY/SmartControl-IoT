@@ -1,4 +1,4 @@
-import { LayoutDashboard, Home, PlusCircle, Settings, Moon, Sun, Bluetooth, Activity, BarChart, Shield, Zap } from 'lucide-react';
+import { LayoutDashboard, Home, PlusCircle, Settings, Moon, Sun, Bluetooth, BarChart, Shield, Zap } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';

@@ -9,7 +9,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 function resolveScript(scriptName: string): string {
   if (isProduction) {
-    return path.join((process as any).resourcesPath, 'bin', `${scriptName.replace('.py', '.exe')}`);
+    const resourcesPath = process.env.RESOURCES_PATH || (process as any).resourcesPath || '';
+    return path.join(resourcesPath, 'bin', `${scriptName.replace('.py', '.exe')}`);
   }
   return path.resolve(process.cwd(), 'src', 'scripts', scriptName);
 }

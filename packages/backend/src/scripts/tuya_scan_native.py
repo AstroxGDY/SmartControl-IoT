@@ -1,3 +1,4 @@
+
 import tinytuya
 import sys
 import json
@@ -8,24 +9,26 @@ def main():
         idx = sys.argv.index("-snapshot-file")
         if idx + 1 < len(sys.argv):
             snapshot_file = sys.argv[idx+1]
-    try:
-        devices = tinytuya.deviceScan(verbose=False, poll=False)
-    except Exception as e:
-        print(f"Error scanning: {e}", file=sys.stderr)
-        devices = {}
-
+    
+    print(f"Scanning devices...")
+    
+    d = tinytuya.deviceScan(verbose=False, maxretry=2)
+    
     output = {"devices": []}
-    if isinstance(devices, dict):
-        for dev_id in devices:
-            dev = devices[dev_id]
-            # Ensure it has the ID field
-            if isinstance(dev, dict):
-                if 'id' not in dev: 
-                    dev['id'] = dev_id
-                output["devices"].append(dev)
+    for ip, dev in d.items():
+        mapped = {
+            "id": dev.get("gwId"),
+            "ip": ip,
+            "productKey": dev.get("productKey"),
+            "version": dev.get("version"),
+            "name": dev.get("name", f"Dispositivo {dev.get('gwId', '')[-4:]}")
+        }
+        output["devices"].append(mapped)
     
     with open(snapshot_file, "w") as f:
-        json.dump(output, f, indent=4)
+        json.dump(output, f)
+    
+    print("Scan complete.")
 
 if __name__ == "__main__":
     main()

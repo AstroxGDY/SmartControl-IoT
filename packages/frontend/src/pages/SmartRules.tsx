@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Zap, Play, Trash2, Plus, AlertCircle, Loader2, CheckCircle2, X, Settings2, Clock, Smartphone } from 'lucide-react';
+import { Zap, Play, Trash2, Plus, AlertCircle, Loader2, CheckCircle2, X, Clock, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { getCapabilitiesForCategory, DeviceDP } from '../utils/deviceCapabilities';
+import { getCapabilitiesForCategory } from '../utils/deviceCapabilities';
 
 interface Rule {
   id: string;
@@ -157,7 +157,7 @@ const SmartRules = () => {
             const condDev = devices.find(d => d._id === conditionDevice);
             if (condDev?.attributes?.tuyaId) {
                 ruleBody.conditions = Object.keys(conditionDPValues).map((dpCode, index) => ({
-                    entity_id: condDev.attributes.tuyaId,
+                    entity_id: condDev.attributes!.tuyaId,
                     entity_type: "device",
                     order_num: index + 1,
                     trigger_and_condition: "trigger",

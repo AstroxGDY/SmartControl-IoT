@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Bluetooth, Smartphone, Volume2, Play, Pause, 
   SkipForward, SkipBack, Loader2, AlertCircle, RefreshCw,
@@ -31,7 +30,6 @@ interface MouseEvent {
 
 export default function BluetoothManager() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   
   const [isScanning, setIsScanning] = useState(false);
   const [devices, setDevices] = useState<BTDevice[]>([]);

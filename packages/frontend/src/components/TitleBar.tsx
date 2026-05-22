@@ -1,7 +1,5 @@
-import { Minus, Square, X, Monitor, Cpu } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-
+import { Minus, Square, X, Cpu } from 'lucide-react';
+import { useState } from 'react';
 export default function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
 

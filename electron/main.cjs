@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, safeStorage } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const { getSystemDefaults } = require('./system_secrets.cjs');
 
 // app.disableHardwareAcceleration();
@@ -18,11 +18,32 @@ function startBackend() {
   console.log(`Iniciando backend desde: ${backendPath}`);
 
   if (isProd) {
-    // En producción usamos node directamente sobre el JS compilado
-    backendProcess = exec(`node "${backendPath}"`, (error, stdout, stderr) => {
-      if (error) console.error(`Backend error: ${error}`);
-      console.log(`Backend stdout: ${stdout}`);
-      console.error(`Backend stderr: ${stderr}`);
+    const logPath = path.join(app.getPath('userData'), 'backend.log');
+    const logStream = fs.createWriteStream(logPath, { flags: 'a' });
+    logStream.write(`\n--- Backend iniciado el ${new Date().toISOString()} ---\n`);
+
+    backendProcess = spawn('node', [backendPath], {
+      env: { 
+        ...process.env, 
+        NODE_ENV: 'production',
+        RESOURCES_PATH: process.resourcesPath
+      }
+    });
+
+    backendProcess.stdout.on('data', (data) => {
+      logStream.write(data);
+    });
+
+    backendProcess.stderr.on('data', (data) => {
+      logStream.write(`[STDERR] ${data}`);
+    });
+
+    backendProcess.on('error', (err) => {
+      logStream.write(`[ERROR] Fallo al iniciar backend: ${err.message}\n`);
+    });
+
+    backendProcess.on('close', (code) => {
+      logStream.write(`[CLOSE] Backend terminado con código ${code}\n`);
     });
   } else {
     // En desarrollo ya lo iniciamos con concurrently, pero si quisiéramos:

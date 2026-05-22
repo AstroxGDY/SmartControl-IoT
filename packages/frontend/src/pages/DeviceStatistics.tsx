@@ -10,17 +10,9 @@ import {
     ChevronRight, 
     Activity, 
     TrendingUp,
-    AlertCircle,
     Info,
-    Cpu,
     Loader2,
-    Wifi,
-    PowerOff,
     MousePointer2,
-    Move,
-    Lightbulb,
-    Thermometer,
-    ZapOff,
     History,
     Calendar,
     ArrowUpRight,
@@ -29,14 +21,12 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    LineChart, 
     Line, 
     XAxis, 
     YAxis, 
     CartesianGrid, 
     Tooltip, 
     ResponsiveContainer, 
-    AreaChart, 
     Area,
     Bar,
     ComposedChart
@@ -80,7 +70,7 @@ export default function DeviceStatistics() {
     const { t, i18n } = useTranslation();
     const [data, setData] = useState<GlobalStatsData[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     
     // Detailed view state

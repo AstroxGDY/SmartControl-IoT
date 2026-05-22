@@ -11,7 +11,8 @@
     "backend": "npm run dev -w backend",
     "electron": "electron .",
     "dev": "concurrently --kill-others \"npm run frontend\" \"npm run backend\" \"npm run electron\"",
-    "build:all": "npm run build -w frontend && npm run build -w backend",
+    "build:python": "cd packages/backend/src/scripts && python freeze_scripts.py",
+    "build:all": "npm run build:python && npm run build -w frontend && npm run build -w backend",
     "dist": "npm run build:all && electron-builder"
   },
   "build": {
@@ -27,6 +28,7 @@
       "electron/**/*",
       "packages/frontend/dist/**/*",
       "packages/backend/dist/**/*",
+      "packages/backend/package.json",
       "!packages/backend/src/**/*",
       "package.json"
     ],
